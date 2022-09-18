@@ -6,7 +6,8 @@
 #   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
 # Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
-
+from django.dispatch import receiver
+from django.db.models.signals import post_save
 
 class Ai(models.Model):
     aiid = models.IntegerField(db_column='aiID', primary_key=True)  # Field name made lowercase.
@@ -76,12 +77,12 @@ class Deployments(models.Model):
 
 
 class Event(models.Model):
-    eventid = models.IntegerField(db_column='eventID', primary_key=True)  # Field name made lowercase.
+    eventid = models.AutoField(db_column='eventID', primary_key=True,editable = False)  # Field name made lowercase.
     samplingprotocol = models.CharField(db_column='samplingProtocol', max_length=255)  # Field name made lowercase.
     eventdate = models.DateTimeField(db_column='eventDate', blank=True, null=True)  # Field name made lowercase.
     eventremarks = models.CharField(db_column='eventRemarks', max_length=255, blank=True, null=True)  # Field name made lowercase.
     locationid = models.ForeignKey('Location', models.DO_NOTHING, db_column='locationID', blank=True, null=True)  # Field name made lowercase.
-    supraeventid = models.IntegerField(db_column='supraEventID', blank=True, null=True)  # Field name made lowercase.
+    #supraeventid = models.IntegerField(db_column='supraEventID', blank=True, null=True)  # Field name made lowercase.
 
     class Meta:
         managed = False
@@ -112,7 +113,7 @@ class Location(models.Model):
 
 
 class Media(models.Model):
-    mediaid = models.OneToOneField('Observation', models.DO_NOTHING, db_column='mediaID', primary_key=True)  # Field name made lowercase.
+    mediaid = models.IntegerField(db_column='mediaID', primary_key=True)  # Field name made lowercase.
     deploymentid = models.ForeignKey(Deployments, models.DO_NOTHING, db_column='deploymentID')  # Field name made lowercase.
     sequenceid = models.IntegerField(db_column='sequenceID')  # Field name made lowercase.
     capturemethod = models.CharField(db_column='captureMethod', max_length=255, blank=True, null=True)  # Field name made lowercase.
@@ -130,11 +131,25 @@ class Media(models.Model):
         db_table = 'Media'
 
 
+@receiver(signal=post_save, sender=Media, dispatch_uid='add_event_on_new_media')
+def function_to_run_task(sender, instance, **kwargs):
+    new_event = Event(
+            eventid = instance.mediaid,
+            samplingprotocol = instance.capturemethod,
+            eventdate = instance.timestamp,
+            eventremarks = instance.comments,
+            #locationid = instance.Deployments.locationID,
+            #supraeventid = instance.supraeventid        
+        )
+    new_event.save()
+
+
+
 class Observation(models.Model):
     observationid = models.IntegerField(db_column='observationID')  # Field name made lowercase.
     deploymentid = models.ForeignKey(Deployments, models.DO_NOTHING, db_column='deploymentID', blank=True, null=True)  # Field name made lowercase.
     sequenceid = models.IntegerField(db_column='sequenceID')  # Field name made lowercase.
-    mediaid = models.IntegerField(db_column='mediaID', primary_key=True)  # Field name made lowercase.
+    mediaid = models.OneToOneField('Media', models.DO_NOTHING, db_column='mediaID', primary_key=True)  # Field name made lowercase.
     timestamp = models.DateTimeField(blank=True, null=True)
     observationtype = models.CharField(db_column='observationType', max_length=255)  # Field name made lowercase.
     camerasetup = models.CharField(db_column='cameraSetup', max_length=255, blank=True, null=True)  # Field name made lowercase.
@@ -342,6 +357,8 @@ class DjangoSession(models.Model):
 #class UserViewSet(viewsets.ModelViewSet):
 #    queryset = User.objects.all()
 #    serializer_class = UserSerializer
+
+
 
 
 
