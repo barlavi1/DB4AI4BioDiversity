@@ -113,6 +113,7 @@ class Location(models.Model):
 
 
 class Media(models.Model):
+    #CAPTURE_CHOICES = [(motion_detection, 'motion detection'), (time_lapse, 'time lapse')]
     mediaid = models.IntegerField(db_column='mediaID', primary_key=True)  # Field name made lowercase.
     deploymentid = models.ForeignKey(Deployments, models.DO_NOTHING, db_column='deploymentID')  # Field name made lowercase.
     sequenceid = models.IntegerField(db_column='sequenceID')  # Field name made lowercase.
@@ -133,12 +134,17 @@ class Media(models.Model):
 
 @receiver(signal=post_save, sender=Media, dispatch_uid='add_event_on_new_media')
 def function_to_run_task(sender, instance, **kwargs):
+    #Dep = Deployments.objects.get(deploymentid=instance.deploymentid)
+    capturemethod = instance.capturemethod
+    if instance.capturemethod == "motion detection":
+        capturemethod = "camera trap"
     new_event = Event(
             eventid = instance.mediaid,
-            samplingprotocol = instance.capturemethod,
+            samplingprotocol = capturemethod,
             eventdate = instance.timestamp,
             eventremarks = instance.comments,
-            #locationid = instance.Deployments.locationID,
+            #locationid = getattr(Dep,'locationid')
+            locationid = instance.deploymentid.locationid
             #supraeventid = instance.supraeventid        
         )
     new_event.save()
@@ -149,7 +155,9 @@ class Observation(models.Model):
     observationid = models.IntegerField(db_column='observationID')  # Field name made lowercase.
     deploymentid = models.ForeignKey(Deployments, models.DO_NOTHING, db_column='deploymentID', blank=True, null=True)  # Field name made lowercase.
     sequenceid = models.IntegerField(db_column='sequenceID')  # Field name made lowercase.
-    mediaid = models.OneToOneField('Media', models.DO_NOTHING, db_column='mediaID', primary_key=True)  # Field name made lowercase.
+    mediaid = models.IntegerField(db_column='mediaID')  # Field name made lowercase
+    mediaid = models.OneToOneField('Media', models.DO_NOTHING, db_column='mediaID', primary_key = True)  # Field name made lowercase..
+    mediaid = models.ForeignKey(Media, models.DO_NOTHING, db_column='mediaID')  # Field name made lowercase..
     timestamp = models.DateTimeField(blank=True, null=True)
     observationtype = models.CharField(db_column='observationType', max_length=255)  # Field name made lowercase.
     camerasetup = models.CharField(db_column='cameraSetup', max_length=255, blank=True, null=True)  # Field name made lowercase.
@@ -166,7 +174,8 @@ class Observation(models.Model):
     classificationtimestamp = models.DateTimeField(db_column='classificationTimestamp', blank=True, null=True)  # Field name made lowercase.
     classificationconfidence = models.FloatField(db_column='classificationConfidence', blank=True, null=True)  # Field name made lowercase.
     comments = models.CharField(max_length=255, blank=True, null=True)
-    field_id = models.CharField(db_column='_id', max_length=255, blank=True, null=True)  # Field renamed because it started with '_'.
+    field_id = models.AutoField(db_column='_id', max_length = 255, primary_key = True)  # Field renamed because it started with '_'.
+
 
     class Meta:
         managed = False
