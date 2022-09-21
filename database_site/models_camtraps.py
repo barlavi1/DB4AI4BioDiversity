@@ -10,7 +10,9 @@ def Media_Increment_field_id():
     last = Media.objects.all().order_by('field_id').last()
     if not last:
         return 1
-    return last+1
+    field_object = Media._meta.get_field('field_id')
+    last = field_object.value_from_object(last)
+    return int(last)+1
 
 
 class Media(models.Model):
@@ -78,10 +80,13 @@ class Deployments(models.Model):
 
 
 def IncrementObservationID():
-    last_Observation = Observation.objects.all().order_by('field_id').last()
-    if not last_Observation:
+    last = Observation.objects.all().order_by('field_id').last()
+    if not last:
         return 1
-    return last_Observation+1 
+
+    field_object = Observation._meta.get_field('field_id')
+    last = field_object.value_from_object(last)
+    return last+1 
 
 class Observation(models.Model):
     ObservationTypeChoices = (('animal','animal'),('human','human'),('vehicle','vehicle'),('blank','blank'),('unknown','unknown'),('unclassified','unclassified'),)
@@ -112,13 +117,11 @@ class Observation(models.Model):
 
 
     def save(self, *args, **kwargs):
-        if len(self.sequenceid.objects.all()) > 1:
-            self.timestamp = min(self.sequenceid.timestamp)
-        else:
-            self.timestamp = self.sequenceid.timestamp
-    
+        first = Media.objects.filter(sequenceid=self.sequenceid.sequenceid).order_by('timestamp').first()
+        field_object = Media._meta.get_field('timestamp')
+        self.timestamp = field_object.value_from_object(first)
         self.scientificname = self.taxonid.scientificname
-        self.deploymentid = self.mediaid.deploymentid
+        self.deploymentid = self.sequenceid.deploymentid
         super(Observation, self).save()
 
     class Meta:
@@ -127,7 +130,7 @@ class Observation(models.Model):
         #unique_together = (('mediaid', 'observationid'),)
         constraints = [
             models.UniqueConstraint(
-                fields=['mediaid', 'observationid'], name='unique_media_observation_combination'
+                fields=['observationid','sequenceid', 'mediaid'], name='unique_media_sequence_observation_combination'
             )
         ]
 
