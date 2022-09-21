@@ -10,15 +10,6 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save
 from datetime import datetime, timedelta
 
-
-class Sex(models.Model):
-    sexid = models.IntegerField(db_column='sexID', primary_key=True)  # Field name made lowercase.
-    sextype = models.CharField(db_column='sexType', max_length=255, blank=True, null=True)  # Field name made lowercase.
-
-    class Meta:
-        managed = False
-        db_table = 'Sex'
-
 class Ai(models.Model):
     aiid = models.IntegerField(db_column='aiID', primary_key=True)  # Field name made lowercase.
     aiversion = models.CharField(db_column='aiVersion', max_length=255, blank=True, null=True)  # Field name made lowercase.
@@ -95,7 +86,7 @@ class Deployments(models.Model):
 
 
 class Event(models.Model):
-    eventid = models.OneToOneField('Media', on_delete=models.CASCADE, db_column='eventID', primary_key=True,editable = False)  # Field name made lowercase.
+    eventid = models.AutoField(db_column='eventID', primary_key=True,editable = False)  # Field name made lowercase.
     samplingprotocol = models.CharField(db_column='samplingProtocol', max_length=255)  # Field name made lowercase.
     eventdate = models.DateTimeField(db_column='eventDate', blank=True, null=True)  # Field name made lowercase.
     eventremarks = models.CharField(db_column='eventRemarks', max_length=255, blank=True, null=True)  # Field name made lowercase.
@@ -156,7 +147,7 @@ def function_to_run_task(sender, instance, **kwargs):
     if instance.capturemethod == "motion detection":
         capturemethod = "camera trap"
     new_event = Event(
-            eventid = instance,
+            eventid = instance.mediaid,
             samplingprotocol = capturemethod,
             eventdate = instance.timestamp,
             eventremarks = instance.comments,
@@ -168,11 +159,11 @@ def function_to_run_task(sender, instance, **kwargs):
 
 class Observation(models.Model):
     observationid = models.IntegerField(db_column='observationID')  # Field name made lowercase.
-    deploymentid = models.ForeignKey(Deployments, on_delete = models.CASCADE, db_column='deploymentID', editable = False)  # Field name made lowercase.
-    sequenceid = models.IntegerField(db_column='sequenceID', editable = False)  # Field name made lowercase.
+    deploymentid = models.ForeignKey(Deployments, on_delete = models.CASCADE, db_column='deploymentID', blank=True, null=True)  # Field name made lowercase.
+    sequenceid = models.IntegerField(db_column='sequenceID')  # Field name made lowercase.
     #mediaid = models.IntegerField(db_column='mediaID')  # Field name made lowercase
     #mediaid = models.OneToOneField('Media', models.DO_NOTHING, db_column='mediaID', primary_key = True)  # Field name made lowercase..
-    mediaid = models.ForeignKey(Media, models.DO_NOTHING, db_column='mediaID')  # Field name made lowercase..
+    mediaid = models.ForeignKey(Media, on_delete = models.CASCADE, db_column='mediaID')  # Field name made lowercase..
     timestamp = models.DateTimeField(blank=True, null=True)
     observationtype = models.CharField(db_column='observationType', max_length=255)  # Field name made lowercase.
     camerasetup = models.CharField(db_column='cameraSetup', max_length=255, blank=True, null=True)  # Field name made lowercase.
@@ -181,9 +172,9 @@ class Observation(models.Model):
     scientificname = models.CharField(db_column='scientificName', max_length=255, blank=True, null=True,editable = False)  # Field name made lowercase.
     count = models.IntegerField(blank=True, null=True)
     countnew = models.IntegerField(db_column='countNew', blank=True, null=True)  # Field name made lowercase.
-    lifestage = models.ForeignKey(Lifestage, db_column='lifeStage', on_delete = models.CASCADE, blank=True, null=True)  # Field name made lowercase.
+    lifestage = models.ForeignKey(LifeStage, db_column='lifeStage', on_delete = models.CASCADE, blank=True, null=True)  # Field name made lowercase.
     sex = models.ForeignKey(Sex, db_column='sex', on_delete = models.CASCADE, blank=True, null=True)
-    behavior = models.ForeignKey(Behavior, db_column='behaviour', on_delete=models.CASCADE,  blank=True, null=True)
+    behaviour = models.ForeignKey(Behaviour, db_column='behavior', on_delete=models.CASCADE,  blank=True, null=True)
     individualid = models.CharField(db_column='individualID', max_length=255, blank=True, null=True)  # Field name made lowercase.
     classificationmethod = models.CharField(db_column='classificationMethod', max_length=255, blank=True, null=True)  # Field name made lowercase.
     classifiedby = models.CharField(db_column='classifiedBy', max_length=255, blank=True, null=True)  # Field name made lowercase.
@@ -195,43 +186,30 @@ class Observation(models.Model):
 
     def save(self, *args, **kwargs):
         self.scientificname = self.taxonid.scientificname 
-        self.deploymentid = self.mediaid.deploymentid
-        self.sequenceid = self.mediaid.sequenceid
-        super(Observation, self).save()
+        super(Observation, self).save(*args, **kwargs)
 
     class Meta:
         managed = False
         db_table = 'Observation'
-        #unique_together = (('mediaid', 'observationid'),)
-        constraints = [
-            models.UniqueConstraint(
-                fields=['mediaid', 'observationid'], name='unique_media_observation_combination'
-            )
-        ]
+        unique_together = (('mediaid', 'observationid'),)
+
 
 
 class Occurence(models.Model):
     occurenceid = models.IntegerField(db_column='occurenceID')  # Field name made lowercase.
     eventid = models.ForeignKey(Event, models.DO_NOTHING, db_column='eventID')  # Field name made lowercase.
-    taxonid = models.ForeignKey(Taxon, db_column='taxonID', on_delete=models.CASCADE)  # Field name made lowercase.
+    taxonid = models.IntegerField(db_column='taxonID')  # Field name made lowercase.
     individualcount = models.IntegerField(db_column='individualCount')  # Field name made lowercase.
-    sexid = models.ForeignKey('Sex', on_delete=models.CASCADE, db_column='sexID')  # Field name made lowercase.
-    lifestageid = models.ForeignKey(Lifestage, on_delete=models.CASCADE, db_column='lifeStageID')  # Field name made lowercase.
-    behaviorid = models.ForeignKey(Behavior, on_delete=models.CASCADE, db_column='behaviorID')  # Field name made lowercase.
-    #supraeventid = models.IntegerField(db_column='supraEventID', blank=True, null=True)  # Field name made lowercase.
+    sexid = models.ForeignKey('Sex', models.DO_NOTHING, db_column='sexID')  # Field name made lowercase.
+    lifestageid = models.ForeignKey(Lifestage, models.DO_NOTHING, db_column='lifeStageID')  # Field name made lowercase.
+    behaviorid = models.ForeignKey(Behavior, models.DO_NOTHING, db_column='behaviorID')  # Field name made lowercase.
+    supraeventid = models.IntegerField(db_column='supraEventID', blank=True, null=True)  # Field name made lowercase.
     field_id = models.AutoField(db_column='_id', max_length = 255, primary_key = True)  # Field renamed because it started with '_'.
     
     class Meta:
         managed = False
         db_table = 'Occurence'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['eventid', 'occurenceid'], name='unique_event_occurence_combination'
-            )
-        ]
-        #unique_together = (('eventid', 'occurenceid'),)
-
-
+        unique_together = (('eventid', 'occurenceid'),)
 """
 @receiver(signal=post_save, sender=Observation, dispatch_uid='add_event_on_new_media')
 def function_to_run_task(sender, instance, **kwargs):
@@ -247,9 +225,10 @@ def function_to_run_task(sender, instance, **kwargs):
             locationid = instance.deploymentid.locationid
     )
     new_event.save()
-
-
 """
+
+
+
 class SupraEventTable(models.Model):
     supraeventid = models.IntegerField(db_column='supraeventid',  primary_key = True)
     start_datetime =  models.DateTimeField(db_column='start_datetime')
@@ -340,6 +319,14 @@ class Grades(models.Model):
         managed = False
         db_table = 'Grades'
         unique_together = (('eventid', 'occurenceid', 'taskid', 'annotatorid'),)
+
+class Sex(models.Model):
+    sexid = models.IntegerField(db_column='sexID', primary_key=True)  # Field name made lowercase.
+    sextype = models.CharField(db_column='sexType', max_length=255, blank=True, null=True)  # Field name made lowercase.
+
+    class Meta:
+        managed = False
+        db_table = 'Sex'
 
 
 class Tasks(models.Model):
