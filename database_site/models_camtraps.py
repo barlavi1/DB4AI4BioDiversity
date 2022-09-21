@@ -114,8 +114,8 @@ class Observation(models.Model):
     def save(self, *args, **kwargs):
         if len(self.sequenceid.objects.all()) > 1:
             self.timestamp = min(self.sequenceid.timestamp)
-        #else:
-            #self.timestamp = self.sequenceid.timestamp
+        else:
+            self.timestamp = self.sequenceid.timestamp
     
         self.scientificname = self.taxonid.scientificname
         self.deploymentid = self.mediaid.deploymentid
