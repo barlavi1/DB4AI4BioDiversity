@@ -55,6 +55,12 @@ class Deployments(models.Model):
         db_table = 'Deployments'
 
 
+def IncrementObservationID():
+  last_Observation = Observation.objects.all().order_by('field_id').last()
+  if not last_Observation:
+    return 1
+  return last_Observation+1 
+
 class Observation(models.Model):
     observationid = models.IntegerField(db_column='observationID')  # Field name made lowercase.
     #deploymentid = models.ForeignKey(Deployments, on_delete = models.CASCADE, db_column='deploymentID', editable = False)  # Field name made lowercase.
@@ -81,7 +87,7 @@ class Observation(models.Model):
     classificationtimestamp = models.DateTimeField(db_column='classificationTimestamp', blank=True, null=True)  # Field name made lowercase.
     classificationconfidence = models.FloatField(db_column='classificationConfidence', blank=True, null=True)  # Field name made lowercase.
     comments = models.CharField(max_length=255, blank=True, null=True)
-    field_id = models.AutoField(db_column='_id', primary_key = True)  # Field renamed because it started with '_'.
+    field_id = models.AutoField(db_column='_id', primary_key = True, default = IncrementObservationID)  # Field renamed because it started with '_'.
 
 
     def save(self, *args, **kwargs):
