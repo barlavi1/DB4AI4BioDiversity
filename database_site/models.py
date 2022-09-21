@@ -169,7 +169,9 @@ def function_to_run_task(sender, instance, **kwargs):
 class Observation(models.Model):
     observationid = models.IntegerField(db_column='observationID')  # Field name made lowercase.
     deploymentid = models.ForeignKey(Deployments, on_delete = models.CASCADE, db_column='deploymentID', editable = False)  # Field name made lowercase.
-    sequenceid = models.IntegerField(db_column='sequenceID', editable = False)  # Field name made lowercase.
+    sequenceid = models.IntegerField(db_column='sequenceID', editable = False)  # Field name made lowercase
+    deploymentid = models.ForeignKey(Deployments, models.DO_NOTHING, db_column='deploymentID', blank=True, null=True)  # Field name made lowercase.
+    sequenceid = models.IntegerField(db_column='sequenceID')  # Field name made lowercase.
     #mediaid = models.IntegerField(db_column='mediaID')  # Field name made lowercase
     #mediaid = models.OneToOneField('Media', models.DO_NOTHING, db_column='mediaID', primary_key = True)  # Field name made lowercase..
     mediaid = models.ForeignKey(Media, models.DO_NOTHING, db_column='mediaID')  # Field name made lowercase..
