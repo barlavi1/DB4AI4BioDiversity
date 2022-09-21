@@ -72,13 +72,13 @@ class Grades(models.Model):
         db_table = 'Grades'
         unique_together = (('eventid', 'occurenceid', 'taskid', 'annotatorid'),)
 
-iver(signal=post_save, sender=Media, dispatch_uid='add_event_on_new_media')
+@receiver(signal=post_save, sender=Media, dispatch_uid='add_event_on_new_media')
 def function_to_run_task(sender, instance, **kwargs):
     capturemethod = instance.capturemethod
     if instance.capturemethod == "motion detection":
         capturemethod = "camera trap"
     else:
-	capturemethod = "camera trap"
+        capturemethod = "camera trap"
     new_event = Event(
             eventid = instance,
             samplingprotocol = capturemethod,
