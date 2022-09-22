@@ -1,11 +1,13 @@
 from django.http import HttpResponse
 from django.shortcuts import render
-from database_site.models import Location,Taxon,Lifestage,Sex,Ai,Tasks,Annotators,Deployments,Event,Media,Observation,Occurence,Behavior,Grades
+#from database_site.models import Location,Taxon,Lifestage,Sex,Ai,Tasks,Annotators,Deployments,Event,Media,Observation,Occurence,Behavior,Grades
+from database_site.models import *
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.serializers import *
 from rest_framework import viewsets
-from .serializers import TaxonSerializer, AiSerializer,LifestageSerializer,SexSerializer,LocationSerializer,TasksSerializer,AnnotatorsSerializer,DeploymentsSerializer,MediaSerializer,ObservationSerializer,OccurenceSerializer,BehaviorSerializer,GradesSerializer,EventSerializer
+from .serializers import *
+#from .serializers import TaxonSerializer, AiSerializer,LifestageSerializer,SexSerializer,LocationSerializer,TasksSerializer,AnnotatorsSerializer,DeploymentsSerializer,MediaSerializer,ObservationSerializer,OccurenceSerializer,BehaviorSerializer,GradesSerializer,EventSerializer
 from rest_framework.decorators import api_view
 from django.http.response import JsonResponse
 from rest_framework.parsers import JSONParser 
@@ -83,15 +85,25 @@ class LocationListView(generics.ListAPIView):
     serializer_class = LocationSerializer
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
     filterset_fields =['locationid', 'country']
-"""
+
+
+@api_view(['GET','PUT','DELETE'])
+def GetEvent(request,taxon,pk_location,start,end):
+    try:
+        Result = Observation.objects.get(taxonid=taxon, locationid=deploymentid.locationid, timestamp>=start, timestamp<=end)
+    except Observation.DoesNotExist:
+        return Response(status=HTTP_404_NOT_FOUND)
+    if request.method == 'GET':
+        serializer = ObservationSerializer(Result)
+        return Response(serializer.data)
 
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def snippet_detail(request, pk):
-    """
-    Retrieve, update or delete a code snippet.
-    """
+
+#    Retrieve, update or delete a code snippet.
+
     try:
         loc = Location.objects.get(pk=pk)
     except Location.DoesNotExist:
@@ -108,4 +120,4 @@ def snippet_detail(request, pk):
     elif request.method == 'DELETE':
         loc.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
+"""
