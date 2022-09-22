@@ -1,20 +1,6 @@
 from rest_framework import serializers
+from database_site.models import *
 
-
-from database_site.models import Taxon
-from database_site.models import Ai
-from database_site.models import Lifestage
-from database_site.models import Sex
-from database_site.models import Tasks
-from database_site.models import Annotators
-from database_site.models import Deployments
-from database_site.models import Event
-from database_site.models import Media
-from database_site.models import Observation
-from database_site.models import Location
-from database_site.models import Occurence
-from database_site.models import Behavior
-from database_site.models import Grades
 
 class TaxonSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
