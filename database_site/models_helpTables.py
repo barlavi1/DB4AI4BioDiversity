@@ -72,6 +72,7 @@ class Location(models.Model):
     country = models.CharField(max_length=255, blank=True, null=True)
     county = models.CharField(max_length=255, blank=True, null=True)
 
+
     class Meta:
         managed = False
         db_table = 'Location'

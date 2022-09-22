@@ -1,10 +1,10 @@
 from django.db import models
 from django.dispatch import receiver
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from datetime import datetime, timedelta
 from django.core.validators import MinValueValidator,MaxValueValidator
-
-
+from django.core.exceptions import ValidationError
+from .models_helpTables import Location
 
 def Media_Increment_field_id():
     last = Media.objects.all().order_by('field_id').last()
@@ -30,11 +30,18 @@ class Media(models.Model):
     comments = models.CharField(max_length=255, blank=True, null=True)
     field_id = models.IntegerField(db_column='_id', primary_key=True, default = Media_Increment_field_id,editable = False)  # Field renamed because it started with '_'.
 
-
     
     class Meta:
         managed = False
         db_table = 'Media'
+
+
+@receiver(pre_save, sender = Media)
+def VerifyChronologicalUploading(sender, instance, **kwarg):
+    LastUploadTime = sender.objects.filter(deploymentid = instance.deploymentid).order_by('timestamp').last()
+    if LastUploadTime:
+        if LastUploadTime.timestamp > instance.timestamp:
+            raise ValidationError("New upload was taken earlier than latest upload")
 
 
 
@@ -51,9 +58,9 @@ class Deployments(models.Model):
     deploymentid = models.IntegerField(db_column='deploymentID', primary_key=True)  # Field name made lowercase.
     locationid = models.ForeignKey('Location', on_delete=models.CASCADE, db_column='locationID', blank=True, null=True)  # Field name made lowercase.
     locationname = models.CharField(db_column='locationName', max_length=255, blank=True, null=True)  # Field name made lowercase.
-    longitutde = models.FloatField(db_column='longitutde')
-    latitude = models.FloatField(db_column='latitude')
-    coordinateuncertainty = models.IntegerField(db_column='coordinateUncertainty', blank=True, null=True)  # Field name made lowercase.
+    longitutde = models.FloatField(db_column='longitutde', editable = False)
+    latitude = models.FloatField(db_column='latitude', editable = False)
+    coordinateuncertainty = models.IntegerField(db_column='coordinateUncertainty', blank=True, null=True, editable = False)  # Field name made lowercase.
     start = models.DateTimeField(db_column='start')
     end = models.DateTimeField(db_column='end')
     setupby = models.CharField(db_column='setupBy', max_length=255, blank=True, null=True)  # Field name made lowercase.
@@ -64,8 +71,8 @@ class Deployments(models.Model):
     cameratilt = models.IntegerField(db_column='cameraTilt', blank=True, null=True,validators=[MinValueValidator(-90), MaxValueValidator(90)])  # Field name made lowercase.
     cameraheading = models.IntegerField(db_column='cameraHeading', blank=True, null=True,validators=[MinValueValidator(0), MaxValueValidator(360)])  # Field name made lowercase.
     detectiondistance = models.IntegerField(db_column='detectionDistance', blank=True, null=True,validators=[MinValueValidator(0)])  # Field name made lowercase.
-    timestampissues = models.BooleanField(db_column='timestampIssues', blank=True, null=True, default = False)  # Field name made lowercase.
-    baituse = models.IntegerField(db_column='baitUse', blank=True, null=True,choices = BaitChoices, default = 'none')  # Field name made lowercase.
+    timestampissues = models.BooleanField(db_column='timestampIssues', blank=True, null=True)  # Field name made lowercase.
+    baituse = models.IntegerField(db_column='baitUse', blank=True, null=True,choices = BaitChoices)  # Field name made lowercase.
     session = models.CharField(max_length=255, blank=True, null=True)
     array = models.CharField(max_length=255, blank=True, null=True)
     featuretype = models.CharField(db_column='featureType', max_length=255, blank=True, null=True,choices = FeatureTypeChoices, default = 'none')  # Field name made lowercase.
@@ -74,6 +81,16 @@ class Deployments(models.Model):
     comments = models.CharField(max_length=255, blank=True, null=True)
     #field_id = AutoField(db_column = "_id", primary_key=True, default = 1)  # Field renamed because it started with '_'.
 
+
+    def save(self, *args, **kwargs):
+        self.longitutde=  (Location.objects.get(locationid=self.locationid.locationid)).decimallongtitude
+        self.latitude = (Location.objects.get(locationid=self.locationid.locationid)).decimallatitude
+        try:
+            self.coordinateuncertainty = Location.objects.get(locationid=self.locationid.locationid).coordinateUncertaintyInMeters
+        except:
+            self.coordinateuncertainty = 1
+        super(Deployments, self).save()
+    
     class Meta:
         managed = False
         db_table = 'Deployments'
@@ -118,9 +135,9 @@ class Observation(models.Model):
 
     def save(self, *args, **kwargs):
         first = Media.objects.filter(sequenceid=self.sequenceid.sequenceid).order_by('timestamp').first()
-        field_object = Media._meta.get_field('timestamp')
-        self.timestamp = field_object.value_from_object(first)
-        self.scientificname = self.taxonid.scientificname
+        self.timestamp = first.timestamp
+        if self.taxonid:
+            self.scientificname = self.taxonid.scientificname
         self.deploymentid = self.sequenceid.deploymentid
         super(Observation, self).save()
 

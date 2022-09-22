@@ -16,33 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from . import views
+#from . import views
 from rest_framework import routers
 
-#from rest_framework_simplejwt.views import (
-#            TokenObtainPairView,
-#                TokenRefreshView,
-#                    TokenVerifyView,
-#                    )
-
-
 router = routers.DefaultRouter()
-router.register(r'Taxon', views.TaxonViewSet)
-router.register(r'AI', views.AiViewSet)
-router.register(r'Behavior', views.BehaviorViewSet)
-router.register(r'Lifestage', views.LifestageViewSet)
-router.register(r'Sex', views.SexViewSet)
-router.register(r'Tasks', views.TasksViewSet)
-router.register(r'Annotators', views.AnnotatorsViewSet)
-router.register(r'Deployments', views.DeploymentsViewSet)
-router.register(r'Grades', views.GradesViewSet)
-router.register(r'Event', views.EventViewSet)
-router.register(r'Media', views.MediaViewSet)
-router.register(r'Observation', views.ObservationViewSet)
-router.register(r'Occurence', views.OccurenceViewSet)
-router.register(r'Locaion', views.LocationViewSet)
-
-
 urlpatterns = [
         path('', include(router.urls)),
         path('admin/', admin.site.urls),
