@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
 from pathlib import Path
-
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -42,6 +42,13 @@ INSTALLED_APPS = [
     'django_filters',
 
 ]
+
+
+
+REST_FRAMEWORK = {
+        'COERCE_DECIMAL_TO_STRING': False,
+}
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -152,7 +159,7 @@ LOGGING = {
                 'class': 'django.utils.log.AdminEmailHandler',
                 }
             },
-           'loggers': {
+           'loggers'
               'django': {
                      'handlers': ['file'],
                      'level': 'DEBUG',
@@ -168,8 +175,9 @@ LOGGING = {
                     'level': 'ERROR',
                     'propagate': False,
                     },
-            },
-    }
+            }
 
 
+MEDIA_ROOT =  os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
 

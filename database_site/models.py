@@ -60,16 +60,16 @@ class Occurence(models.Model):
         ]
         #unique_together = (('eventid', 'occurenceid'),)
 
-class SupraEventTable(models.Model):
-    supraeventid = models.IntegerField(db_column='supraeventid',  primary_key = True)
-    start_datetime =  models.DateTimeField(db_column='start_datetime')
-    end_datetime =  models.DateTimeField(db_column='end_datetime')
-    taxonid = models.ForeignKey(Taxon, on_delete = models.CASCADE, db_column='taxonid')
-    locationid= models.ForeignKey(Location, on_delete = models.CASCADE, db_column='locationid')
+#class SupraEventTable(models.Model):
+#    supraeventid = models.IntegerField(db_column='supraeventid',  primary_key = True)
+#    start_datetime =  models.DateTimeField(db_column='start_datetime')
+#    end_datetime =  models.DateTimeField(db_column='end_datetime')
+#    taxonid = models.ForeignKey(Taxon, on_delete = models.CASCADE, db_column='taxonid')
+#    locationid= models.ForeignKey(Location, on_delete = models.CASCADE, db_column='locationid')
 
-    class Meta:
-        managed = False
-        db_table = 'SupraEventTable'
+#    class Meta:
+#        managed = False
+#        db_table = 'SupraEventTable'
 
 
 

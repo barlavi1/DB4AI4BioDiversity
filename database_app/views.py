@@ -31,8 +31,8 @@ class LocationViewSet(viewsets.ModelViewSet):
     queryset = Location.objects.all().order_by('locationid')
     serializer_class = LocationSerializer
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
-    filterset_fields = ['locationid', 'country']
-
+    filterset_fields = '__all__'
+    #filterset_fields = ['decimallatitude'
 
 class LifestageViewSet(viewsets.ModelViewSet):
     queryset = Lifestage.objects.all().order_by('lifestageid')
@@ -57,6 +57,8 @@ class DeploymentsViewSet(viewsets.ModelViewSet):
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
+    filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
+    filterset_fields = '__all__'
 
 class MediaViewSet(viewsets.ModelViewSet):
     queryset = Media.objects.all().order_by('sequenceid')
@@ -78,6 +80,9 @@ class BehaviorViewSet(viewsets.ModelViewSet):
 class GradesViewSet(viewsets.ModelViewSet):
     queryset = Grades.objects.all().order_by('grade')
     serializer_class = GradesSerializer
+
+
+
 
 """
 class LocationListView(generics.ListAPIView):

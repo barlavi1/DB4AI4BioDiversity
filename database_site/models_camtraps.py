@@ -1,11 +1,12 @@
 from django.db import models
+from django.conf import settings
 from django.dispatch import receiver
 from django.db.models.signals import post_save, pre_save
 from datetime import datetime, timedelta
 from django.core.validators import MinValueValidator,MaxValueValidator
 from django.core.exceptions import ValidationError
 from .models_helpTables import Location
-
+import os
 def Media_Increment_field_id():
     last = Media.objects.all().order_by('field_id').last()
     if not last:
@@ -15,22 +16,35 @@ def Media_Increment_field_id():
     return int(last)+1
 
 
+def path_and_rename(path):
+    def wrapper(instance, filename):
+        filename = str(instance.timestamp)+"_"+filename
+        return os.path.join(path, filename)
+    return wrapper
+
+
 class Media(models.Model):
     captureMethodChoices = (('motion detection','motion detection'),('time lapse','time lapse'),)
-    mediaid = models.IntegerField(db_column='mediaID')  # Field name made lowercase.
+    mediaid = models.CharField(db_column='mediaID', max_length = 255, editable = False)  # Field name made lowercase.
     deploymentid = models.ForeignKey('Deployments', on_delete=models.CASCADE, db_column='deploymentID')  # Field name made lowercase.
     sequenceid = models.IntegerField(db_column='sequenceID')  # Field name made lowercase.
     capturemethod = models.CharField(db_column='captureMethod', max_length=255, blank=True, null=True,choices=captureMethodChoices)  # Field name made lowercase.
     timestamp = models.DateTimeField(db_column = 'timestamp')
-    filepath = models.CharField(max_length=255, db_column = 'filepath')
-    filename = models.CharField(db_column='fileName', max_length=255, blank=True, null=True)  # Field name made lowercase.
+    filepath = models.ImageField(upload_to=path_and_rename('images/'))
+    filename = models.CharField(db_column='fileName', max_length=255, blank=True, null=True,editable = False)  # Field name made lowercase.
     filemediatype = models.CharField(db_column='fileMediatype', max_length=255)  # Field name made lowercase.
     exifdata = models.CharField(db_column='exifData', max_length=255, blank=True, null=True)  # Field name made lowercase.
     favourite = models.CharField(max_length=255, blank=True, null=True)
     comments = models.CharField(max_length=255, blank=True, null=True)
     field_id = models.IntegerField(db_column='_id', primary_key=True, default = Media_Increment_field_id,editable = False)  # Field renamed because it started with '_'.
 
-    
+
+    def save(self, *args, **kwargs):
+        self.mediaid =  str(self.timestamp)+str(self.filepath)
+        self.filename = str(self.filepath).split("\\")[-1]
+        super(Media, self).save()
+
+
     class Meta:
         managed = False
         db_table = 'Media'
@@ -58,8 +72,8 @@ class Deployments(models.Model):
     deploymentid = models.IntegerField(db_column='deploymentID', primary_key=True)  # Field name made lowercase.
     locationid = models.ForeignKey('Location', on_delete=models.CASCADE, db_column='locationID', blank=True, null=True)  # Field name made lowercase.
     locationname = models.CharField(db_column='locationName', max_length=255, blank=True, null=True)  # Field name made lowercase.
-    longitutde = models.FloatField(db_column='longitutde', editable = False)
-    latitude = models.FloatField(db_column='latitude', editable = False)
+    longitutde = models.DecimalField(db_column='longitutde', max_digits = 11, decimal_places = 8, editable = False)
+    latitude = models.DecimalField(db_column='latitude', max_digits = 10, decimal_places = 8, editable = False)
     coordinateuncertainty = models.IntegerField(db_column='coordinateUncertainty', blank=True, null=True, editable = False)  # Field name made lowercase.
     start = models.DateTimeField(db_column='start')
     end = models.DateTimeField(db_column='end')

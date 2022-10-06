@@ -3,7 +3,7 @@ from django.db import models
 from django.dispatch import receiver
 from django.db.models.signals import post_save
 from datetime import datetime, timedelta
-
+from django.core.validators import MinValueValidator,MaxValueValidator
 
 class Sex(models.Model):
     sexid = models.IntegerField(db_column='sexID', primary_key=True)  # Field name made lowercase.
@@ -65,8 +65,12 @@ class Lifestage(models.Model):
 
 class Location(models.Model):
     locationid = models.CharField(db_column='locationID', primary_key=True, max_length=255)  # Field name made lowercase.
-    decimallatitude = models.FloatField(db_column='decimalLatitude', blank=True, null=True)  # Field name made lowercase.
-    decimallongtitude = models.FloatField(db_column='decimalLongtitude', blank=True, null=True)  # Field name made lowercase.
+    #decimallatitude = models.FloatField(db_column='decimalLatitude', validators=[MinValueValidator(-90.00000000), MaxValueValidator(90.00000000)], blank=True, null=True)  # Field name made lowercase.
+    #decimallongtitude = models.FloatField(db_column='decimalLongtitude',validators=[MinValueValidator(-180.00000000), MaxValueValidator(180.00000000)],  blank=True, null=True)  # Field name made lowercase.
+    decimallatitude = models.DecimalField(db_column='decimalLatitude',max_digits = 10, decimal_places = 8, validators=[MinValueValidator(-90.00000000), MaxValueValidator(90.00000000)], blank=True, null=True)  # Field name made lowercase.
+    decimallongtitude = models.DecimalField(db_column='decimalLongtitude',max_digits = 11, decimal_places = 8,validators=[MinValueValidator(-180.00000000), MaxValueValidator(180.00000000)],  blank=True, null=True)  # Field name made lowercase.
+
+
     coordinateuncertaintyinmeters = models.IntegerField(db_column='coordinateUncertaintyInMeters', blank=True, null=True)  # Field name made lowercase.
     continen = models.CharField(max_length=255, blank=True, null=True)
     country = models.CharField(max_length=255, blank=True, null=True)
