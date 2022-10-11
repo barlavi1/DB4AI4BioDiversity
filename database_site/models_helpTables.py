@@ -5,8 +5,42 @@ from django.db.models.signals import post_save
 from datetime import datetime, timedelta
 from django.core.validators import MinValueValidator,MaxValueValidator
 
+
+def Behavior_Increment_field_id():
+    last = Behavior.objects.all().order_by('behaviorid').last()
+    if not last:
+        return 1
+    return int(last.behaviorid)+1
+
+def Lifestage_Increment_field_id():
+    last = Lifestage.objects.all().order_by('lifestageid').last()
+    if not last:
+        return 1
+    return int(last.lifestageid)+1
+
+def Sex_Increment_field_id():
+    last = Sex.objects.all().order_by('sexid').last()
+    if not last:
+        return 1
+    return int(last.sexid)+1
+
+def Tasks_Increment_field_id():
+    last = Tasks.objects.all().order_by('taskid').last()
+    if not last:
+        return 1
+    return int(last.taskid)+1
+
+
+
+
+
+
+
+
+
+
 class Sex(models.Model):
-    sexid = models.IntegerField(db_column='sexID', primary_key=True)  # Field name made lowercase.
+    sexid = models.IntegerField(db_column='sexID', primary_key=True, default = Sex_Increment_field_id)  # Field name made lowercase.
     sextype = models.CharField(db_column='sexType', max_length=255, blank=True, null=True)  # Field name made lowercase.
 
     class Meta:
@@ -24,10 +58,9 @@ class Ai(models.Model):
         db_table = 'AI'
 
 class Taxon(models.Model):
-    taxonid = models.IntegerField(db_column='taxonID', primary_key=True)  # Field name made lowercase.
+    taxonid = models.IntegerField(db_column='taxonID', primary_key=True, editable = True, blank = False, null = False)  # Field name made lowercase.
     scientificname = models.CharField(db_column='scientificName', max_length=255, blank=True, null=True)  # Field name made lowercase.
     genericname = models.CharField(db_column='genericName', max_length=255, blank=True, null=True)  # Field name made lowercase.
-
     class Meta:
         managed = False
         db_table = 'Taxon'
@@ -48,7 +81,7 @@ class Annotators(models.Model):
 
 
 class Behavior(models.Model):
-    behaviorid = models.IntegerField(db_column='behaviorID', primary_key=True)  # Field name made lowercase.
+    behaviorid = models.IntegerField(db_column='behaviorID', default = Behavior_Increment_field_id, primary_key=True)  # Field name made lowercase.
     behaviortype = models.CharField(db_column='behaviorType', max_length=255, blank=True, null=True)  # Field name made lowercase.
 
     class Meta:
@@ -56,7 +89,7 @@ class Behavior(models.Model):
         db_table = 'Behavior'
 
 class Lifestage(models.Model):
-    lifestageid = models.IntegerField(db_column='lifeStageID', primary_key=True)  # Field name made lowercase.
+    lifestageid = models.IntegerField(db_column='lifeStageID', default = Lifestage_Increment_field_id, primary_key=True)  # Field name made lowercase.
     lifestagetype = models.CharField(db_column='lifeStageType', max_length=255, blank=True, null=True)  # Field name made lowercase.
 
     class Meta:
@@ -64,7 +97,7 @@ class Lifestage(models.Model):
         db_table = 'LifeStage'
 
 class Location(models.Model):
-    locationid = models.CharField(db_column='locationID', primary_key=True, max_length=255)  # Field name made lowercase.
+    locationid = models.CharField(db_column='locationID', max_length=255, null = False, blank = False, primary_key = True, editable = True)  # Field name made lowercase.
     #decimallatitude = models.FloatField(db_column='decimalLatitude', validators=[MinValueValidator(-90.00000000), MaxValueValidator(90.00000000)], blank=True, null=True)  # Field name made lowercase.
     #decimallongtitude = models.FloatField(db_column='decimalLongtitude',validators=[MinValueValidator(-180.00000000), MaxValueValidator(180.00000000)],  blank=True, null=True)  # Field name made lowercase.
     decimallatitude = models.DecimalField(db_column='decimalLatitude',max_digits = 10, decimal_places = 8, validators=[MinValueValidator(-90.00000000), MaxValueValidator(90.00000000)], blank=True, null=True)  # Field name made lowercase.
@@ -82,7 +115,7 @@ class Location(models.Model):
         db_table = 'Location'
 
 class Tasks(models.Model):
-    taskid = models.IntegerField(db_column='taskID', primary_key=True)  # Field name made lowercase.
+    taskid = models.IntegerField(db_column='taskID', primary_key=True, default = Tasks_Increment_field_id)  # Field name made lowercase.
     taskname = models.CharField(db_column='taskName', max_length=255, blank=True, null=True)  # Field name made lowercase.
     taskdescription = models.CharField(db_column='taskDescription', max_length=255, blank=True, null=True)  # Field name made lowercase.
 

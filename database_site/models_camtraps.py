@@ -7,6 +7,12 @@ from django.core.validators import MinValueValidator,MaxValueValidator
 from django.core.exceptions import ValidationError
 from .models_helpTables import Location
 import os
+from PIL import Image
+import PIL.ExifTags
+from datetime import datetime
+import pytz
+utc=pytz.UTC
+
 def Media_Increment_field_id():
     last = Media.objects.all().order_by('field_id').last()
     if not last:
@@ -18,21 +24,29 @@ def Media_Increment_field_id():
 
 def path_and_rename(path):
     def wrapper(instance, filename):
+        Loc = instance.deploymentid.locationid.locationid
         filename = str(instance.timestamp)+"_"+filename
-        return os.path.join(path, filename)
+        long_path = os.path.join(Loc,filename)
+        return os.path.join(path, long_path)
     return wrapper
 
 
+def Media_Increment_sequence_id():
+    last = Media.objects.all().order_by('sequenceid').last()
+    if not last:
+        return 1
+    return int(last.sequenceid)+1
+
 class Media(models.Model):
     captureMethodChoices = (('motion detection','motion detection'),('time lapse','time lapse'),)
-    mediaid = models.CharField(db_column='mediaID', max_length = 255, editable = False)  # Field name made lowercase.
-    deploymentid = models.ForeignKey('Deployments', on_delete=models.CASCADE, db_column='deploymentID')  # Field name made lowercase.
-    sequenceid = models.IntegerField(db_column='sequenceID')  # Field name made lowercase.
+    mediaid = models.CharField(db_column='mediaID', max_length = 255, editable = False, unique = True)  # Field name made lowercase.
+    deploymentid = models.ForeignKey('Deployments', on_delete=models.CASCADE, db_column='deploymentID', editable = False)  # Field name made lowercase.
+    sequenceid = models.IntegerField(db_column='sequenceID', default = Media_Increment_sequence_id)  # Field name made lowercase.
     capturemethod = models.CharField(db_column='captureMethod', max_length=255, blank=True, null=True,choices=captureMethodChoices)  # Field name made lowercase.
-    timestamp = models.DateTimeField(db_column = 'timestamp')
+    timestamp = models.DateTimeField(db_column = 'timestamp', editable = False)
     filepath = models.ImageField(upload_to=path_and_rename('images/'))
     filename = models.CharField(db_column='fileName', max_length=255, blank=True, null=True,editable = False)  # Field name made lowercase.
-    filemediatype = models.CharField(db_column='fileMediatype', max_length=255)  # Field name made lowercase.
+    filemediatype = models.CharField(db_column='fileMediatype', max_length=255, editable = False)  # Field name made lowercase.
     exifdata = models.CharField(db_column='exifData', max_length=255, blank=True, null=True)  # Field name made lowercase.
     favourite = models.CharField(max_length=255, blank=True, null=True)
     comments = models.CharField(max_length=255, blank=True, null=True)
@@ -40,6 +54,38 @@ class Media(models.Model):
 
 
     def save(self, *args, **kwargs):
+        image = Image.open(self.filepath)
+        exif_data = image._getexif()
+        exif = {
+            PIL.ExifTags.TAGS[k]: v
+                for k, v in image._getexif().items()
+                    if k in PIL.ExifTags.TAGS
+            }
+        try:
+            date_object = datetime.strptime(exif['DateTime'],'%Y:%m:%d %H:%M:%S' )
+            self.timestamp = date_object
+        except:
+            raise ValidationError("not date in exif data")
+        try:
+            self.filemediatype = image.format
+        except:
+            raise ValidationError("format wrong " + image.format)
+        try:
+            serial_number = exif['Camera_serial_number']
+        except:
+            serial_number = "ABC"
+        else:
+            serial_number = exif['Camera_serial_number']
+        try:
+            camera_deployments = Deployments.objects.filter(cameraid = serial_number)
+            for deployment in camera_deployments:
+                start_time =  deployment.start.replace(tzinfo=utc)
+                end_time =  deployment.end.replace(tzinfo=utc)
+                curr_time = date_object.replace(tzinfo=utc)
+                if start_time < curr_time and end_time > curr_time:
+                    self.deploymentid = deployment
+        except:
+            raise ValidationError("deployment is wrong " + serial_number+ "  " + str(date_object))            
         self.mediaid =  str(self.timestamp)+str(self.filepath)
         self.filename = str(self.filepath).split("\\")[-1]
         super(Media, self).save()
@@ -54,22 +100,24 @@ class Media(models.Model):
 def VerifyChronologicalUploading(sender, instance, **kwarg):
     LastUploadTime = sender.objects.filter(deploymentid = instance.deploymentid).order_by('timestamp').last()
     if LastUploadTime:
-        if LastUploadTime.timestamp > instance.timestamp:
+        LastUploadTime = LastUploadTime.timestamp.replace(tzinfo=utc)
+        time = instance.timestamp.replace(tzinfo=utc)
+        if LastUploadTime > time:
             raise ValidationError("New upload was taken earlier than latest upload")
 
 
 
-def Dep_Increment_field_id():
-    last = Deployments.objects.all().order_by('field_id').last()
+def Deployment_Increment_field_id():
+    last = Deployments.objects.all().order_by('deploymentid').last()
     if not last:
         return 1
-    return last+1
+    return int(last.deploymentid)+1
 
 
 class Deployments(models.Model):
     BaitChoices = (('none','none'),('scent','scent'),('food','food'),('visual','visual'),('acoustic','acoustic'),('other','other'),)
     FeatureTypeChoices = (('none','none'),('road paved','road paved'),('road dirt','road dirt'),('trail hiking','trail hiking'),('trail game','trail game'),('road underpass','road underpass'),('road bridge','road bridge'),('culvert','culvert'),('burrow','burrow'),('nest site','nest site'),('carcass','carcass'),('water source','water source'),('fruiting tree','fruiting tree'),('other','other'),)
-    deploymentid = models.IntegerField(db_column='deploymentID', primary_key=True)  # Field name made lowercase.
+    deploymentid = models.IntegerField(db_column='deploymentID', primary_key=True, default = Deployment_Increment_field_id, editable = False)  # Field name made lowercase.
     locationid = models.ForeignKey('Location', on_delete=models.CASCADE, db_column='locationID', blank=True, null=True)  # Field name made lowercase.
     locationname = models.CharField(db_column='locationName', max_length=255, blank=True, null=True)  # Field name made lowercase.
     longitutde = models.DecimalField(db_column='longitutde', max_digits = 11, decimal_places = 8, editable = False)

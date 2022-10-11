@@ -2,11 +2,11 @@ from rest_framework import serializers
 from database_site.models import *
 
 
-class TaxonSerializer(serializers.HyperlinkedModelSerializer):
+class TaxonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Taxon
-        #fields = ('taxonid', 'scientificname','genericname')
-        fields = '__all__'
+        fields = ('taxonid', 'scientificname','genericname')
+        #fields = '__all__'
 
 class AiSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
@@ -17,8 +17,8 @@ class AiSerializer(serializers.HyperlinkedModelSerializer):
 class LocationSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Location
-        fields = '__all__'
-        #fields = ('locationid','decimallatitude','decimallongtitude','coordinateuncertaintyinmeters','continen','country','county')
+        #fields = '__all__'
+        fields = ('locationid','decimallatitude','decimallongtitude','coordinateuncertaintyinmeters','continen','country','county')
 
 class BehaviorSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
@@ -56,13 +56,40 @@ class AnnotatorsSerializer(serializers.HyperlinkedModelSerializer):
         #fields = ('annotatorid','annotatorname','assumedexpertiselevel','yearofbirth','annotatorprogram','version','parameters','annotatortype')
 
 
-class DeploymentsSerializer(serializers.HyperlinkedModelSerializer):
+class DeploymentsListSerializer(serializers.ListSerializer):
+    def create(self, validated_data):
+        Last = (Deployments.objects.latest('deploymentid')).deploymentid
+        #test = (Location.objects.get(locationid = "Zavitan_Hydro_2")).locationid
+        #raise ValidationError(len(test))
+        for item in validated_data: 
+            item['deploymentid']=int(Last)+1
+            current_location = Location.objects.get(locationid=item['locationid'].locationid)
+            #raise ValidationError(item['locationid'].locationid)
+            item['longitutde'] = current_location.decimallongtitude
+            item['latitude'] = current_location.decimallatitude
+            item['coordinateuncertainty'] = current_location.coordinateuncertaintyinmeters
+            Last = int(Last)+1
+
+        deployment = [Deployments(**item) for item in validated_data]
+        return Deployments.objects.bulk_create(deployment)
+
+
+        
+
+
+
+class DeploymentsSerializer(serializers.ModelSerializer):
+    #def __init__(self, *args, **kwargs):
+        #super(DeploymentsSerializer, self).__init__(many=True, *args, **kwargs)
     class Meta:
         model = Deployments
         fields = '__all__'
+        list_serializer_class = DeploymentsListSerializer
         #fields = ('deploymentid','locationid','longitutde','latitude','start','end','setupby','cameraid','cameramodel', 'camerainterval','cameraheight','cameratilt','cameraheading','detectiondistance','timestampissues','baituse','session','array','featuretype','habitat','tags','comments')
 
-
+        def to_representation(self, instance):
+            self.fields['locationid'] = serializers.HyperlinkedRelatedField(view_name='locationid', read_only=True)
+            return super(req_AddPostSerializer, self).to_representation(instance)
 
 class GradesSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:

@@ -21,7 +21,7 @@ class Event(models.Model):
     samplingprotocol = models.CharField(db_column='samplingProtocol', max_length=255)  # Field name made lowercase.
     eventdate = models.DateTimeField(db_column='eventDate', blank=True, null=True)  # Field name made lowercase.
     eventremarks = models.CharField(db_column='eventRemarks', max_length=255, blank=True, null=True)  # Field name made lowercase.
-    locationid = models.ForeignKey('Location', models.DO_NOTHING, db_column='locationID', blank=True, null=True)  # Field name made lowercase.
+    locationid = models.ForeignKey('Location', on_delete=models.CASCADE, db_column='locationID', blank=True, null=True)  # Field name made lowercase.
     #supraeventid = models.IntegerField(db_column='supraEventID', blank=True, null=True)  # Field name made lowercase.
 
     class Meta:
@@ -94,7 +94,7 @@ class Grades(models.Model):
         unique_together = (('eventid', 'occurenceid', 'taskid', 'annotatorid'),)
 
 @receiver(signal=post_save, sender=Media, dispatch_uid='add_event_on_new_media')
-def function_to_run_task(sender, instance, **kwargs):
+def CreateEventFromMedia(sender, instance, **kwargs):
     capturemethod = instance.capturemethod
     if instance.capturemethod == "motion detection":
         capturemethod = "camera trap"
