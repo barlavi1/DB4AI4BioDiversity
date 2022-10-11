@@ -25,8 +25,10 @@ def Media_Increment_field_id():
 def path_and_rename(path):
     def wrapper(instance, filename):
         Loc = instance.deploymentid.locationid.locationid
+        camera_id = instance.deploymentid.cameraid
         filename = str(instance.timestamp)+"_"+filename
-        long_path = os.path.join(Loc,filename)
+        camera_path = os.path.join(camera_id,Loc)
+        long_path = os.path.join(camera_path,filename)
         return os.path.join(path, long_path)
     return wrapper
 
