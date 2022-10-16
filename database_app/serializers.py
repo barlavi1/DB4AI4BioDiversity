@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from database_site.models import *
-
-
+from database_site.models_queryObjects import *
+import django_filters
 class TaxonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Taxon
@@ -98,12 +98,12 @@ class GradesSerializer(serializers.HyperlinkedModelSerializer):
         #fields = ('annotatorid','taskid','eventid','occurenceid','grade')
 
 
-class EventSerializer(serializers.HyperlinkedModelSerializer):
+class EventSerializer(serializers.ModelSerializer):
     #eventid = serializers.HyperlinkedRelatedField(view_name='event-id', read_only=True)
     class Meta:
         model = Event
-        fields = '__all__'
-        #fields = ('eventremarks','eventdate','samplingprotocol')
+        #fields = '__all__'
+        fields = ('eventremarks','eventdate','samplingprotocol', 'locationid')
 
 
 class MediaSerializer(serializers.HyperlinkedModelSerializer):
@@ -125,5 +125,25 @@ class OccurenceSerializer(serializers.HyperlinkedModelSerializer):
         model = Occurence
         fields = '__all__'
         #fields = ('occurenceid','eventid', 'taxonid','individualcount','sexid','lifestageid','behaviorid')
+
+
+
+
+
+
+"""
+class FetchImagesSerializer(serializers.ModelSerializer):
+    res = django_filters.CharFilter(field_name='cameraid')
+    class Meta:
+        model = FetchImages
+        fields ='__all__'
+"""
+
+
+
+
+
+
+
 
 

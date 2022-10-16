@@ -76,8 +76,6 @@ class Media(models.Model):
             serial_number = exif['Camera_serial_number']
         except:
             serial_number = "ABC"
-        else:
-            serial_number = exif['Camera_serial_number']
         try:
             camera_deployments = Deployments.objects.filter(cameraid = serial_number)
             for deployment in camera_deployments:
@@ -165,29 +163,31 @@ def IncrementObservationID():
     if not last:
         return 1
 
-    field_object = Observation._meta.get_field('field_id')
-    last = field_object.value_from_object(last)
+    #field_object = Observation._meta.get_field('field_id')
+    #last = field_object.value_from_object(last)
+    last = last.field_id
     return last+1 
 
 class Observation(models.Model):
-    ObservationTypeChoices = (('animal','animal'),('human','human'),('vehicle','vehicle'),('blank','blank'),('unknown','unknown'),('unclassified','unclassified'),)
-    LigeStageChoices = (('adult','adult'),('subadult','subadult'),('juvenile','juvenile'),('offspring','offspring'),('unknown','unknown'),)
+    ObservationTypeChoices = (('unclassified','unclassified'),('animal','animal'),('human','human'),('vehicle','vehicle'),('blank','blank'),('unknown','unknown'),)
+    LigeStageChoices = (('unknown','unknown'),('adult','adult'),('subadult','subadult'),('juvenile','juvenile'),('offspring','offspring'))
     classificationMethodChoices = (('human','human'),('machine','machine'),)
-    SexChoices = (('female','female'),('male','male'),) 
-    observationid= models.IntegerField(db_column='observationID')  # Field name made lowercase.
-    sequenceid = models.ForeignKey(Media,on_delete=models.CASCADE , db_column='sequenceID',related_name='Media_sequenceid')  # Field name made lowercase
+    SexChoices = (('unknown','unknown'),('female','female'),('male','male'),) 
+    BehaviorChoices = (( 'unknown', 'unknown' ),('walking','walking'),('running','running'),('playing','playing'),('eating','eating'),)
+    observationid= models.IntegerField(db_column='observationID', default = IncrementObservationID,editable = False)  # Field name made lowercase.
+    sequenceid = models.ForeignKey(Media,on_delete=models.CASCADE , db_column='sequenceID',related_name='Media_sequenceid', editable = False, blank=True, null = True)  # Field name made lowercase
     deploymentid = models.ForeignKey(Deployments, on_delete=models.CASCADE, db_column='deploymentID', editable = False)  # Field name made lowercase.
     mediaid = models.ForeignKey(Media,on_delete=models.CASCADE , db_column='mediaID',blank = True, null = True,related_name='Media_mediaid')  # Field name made lowercase..
     timestamp = models.DateTimeField(db_column = 'timestamp', editable=False)
-    observationtype = models.CharField(db_column='observationType', max_length=255, choices=ObservationTypeChoices)  # Field name made lowercase.
+    observationtype = models.CharField(db_column='observationType', max_length=255, choices=ObservationTypeChoices, default = 'unclassified')  # Field name made lowercase.
     camerasetup = models.CharField(db_column='cameraSetup', max_length=255, blank=True, null=True)  # Field name made lowercase.
-    taxonid = models.ForeignKey('Taxon', on_delete=models.CASCADE, db_column='taxonID', blank=True, null=True)  # Field name made lowercase.
+    taxonid = models.ForeignKey('Taxon', on_delete=models.CASCADE, db_column='taxonID', default = 'unknown')  # Field name made lowercase.
     scientificname = models.CharField(db_column='scientificName', max_length=255, blank=True, null=True,editable = False)  # Field name made lowercase.
-    count = models.IntegerField(blank=True, null=True)
+    count = models.IntegerField(default = 0,validators=[MinValueValidator(0)])
     countnew = models.IntegerField(db_column='countNew', blank=True, null=True,validators=[MinValueValidator(0)])  # Field name made lowercase.
-    lifestage = models.CharField(max_length=255,db_column='lifeStage', blank=True, null=True, choices = LigeStageChoices)  # Field name made lowercase.
-    sex = models.CharField(max_length=255,db_column = 'sex', blank=True, null=True,choices=SexChoices)
-    behavior = models.ForeignKey('Behavior', db_column='behaviour', on_delete=models.CASCADE,  blank=True, null=True)
+    lifestage = models.CharField(max_length=255,db_column='lifeStage', choices = LigeStageChoices,default = 'unknown')  # Field name made lowercase.
+    sex = models.CharField(max_length=255,db_column = 'sex',choices=SexChoices, default = 'unknown')
+    behavior = models.CharField(max_length=255, db_column='behaviour', choices = BehaviorChoices, default = 'unknown')
     individualid = models.CharField(db_column='individualID', max_length=255, blank=True, null=True)  # Field name made lowercase.
     classificationmethod = models.CharField(db_column='classificationMethod', max_length=255, blank=True, null=True, choices=classificationMethodChoices)  # Field name made lowercase.
     classifiedby = models.CharField(db_column='classifiedBy', max_length=255, blank=True, null=True)  # Field name made lowercase.
@@ -198,13 +198,25 @@ class Observation(models.Model):
 
 
     def save(self, *args, **kwargs):
-        first = Media.objects.filter(sequenceid=self.sequenceid.sequenceid).order_by('timestamp').first()
-        self.timestamp = first.timestamp
-        if self.taxonid:
-            self.scientificname = self.taxonid.scientificname
-        self.deploymentid = self.sequenceid.deploymentid
-        super(Observation, self).save()
+        try:
+            first = Media.objects.filter(sequenceid=self.mediaid.sequenceid).order_by('timestamp').first() #get first object from this sequence)
+        except:
+            raise ValidationError("no such mediaid as "+str(mediaid))
+        self.timestamp = first.timestamp #set timestamp of observation to be the first timestamp in this sequence
+        try: 
+            self.scientificname = self.taxonid.scientificname #set scientific name from taxon table
+        except:
+            raise ValidationError("no such taxonid as "+str(self.taxonid))
+        self.deploymentid = self.mediaid.deploymentid #set deployment from media table
+        self.sequenceid = first #set sequenceid 
+        #if self.sex == '':
+            #self.sex = 'unknown'
+        #if self.lifestage == '':
+            #self.lifestage = 'unknown'
+        #if self.behavior == '':
+            #self.behavior = 'unknown'
 
+        super(Observation, self).save()
     class Meta:
         managed = False
         db_table = 'Observation'

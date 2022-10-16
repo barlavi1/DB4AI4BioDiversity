@@ -16,8 +16,11 @@ from .models_helpTables import *
 from .models_camtraps import *
 
 
+
+
 class Event(models.Model):
-    eventid = models.OneToOneField('Media', on_delete=models.CASCADE, db_column='eventID', primary_key=True,editable = False)  # Field name made lowercase.
+    eventid = models.OneToOneField('Media', on_delete=models.CASCADE, db_column='eventID', primary_key=True,editable = False )  # Field name made lowercase.
+    #eventid = models.CharField(db_column='eventID', primary_key=True,editable = False, max_length=255 )
     samplingprotocol = models.CharField(db_column='samplingProtocol', max_length=255)  # Field name made lowercase.
     eventdate = models.DateTimeField(db_column='eventDate', blank=True, null=True)  # Field name made lowercase.
     eventremarks = models.CharField(db_column='eventRemarks', max_length=255, blank=True, null=True)  # Field name made lowercase.
@@ -47,9 +50,19 @@ class Occurence(models.Model):
     sexid = models.ForeignKey('Sex', on_delete=models.CASCADE, db_column='sexID')  # Field name made lowercase.
     lifestageid = models.ForeignKey('Lifestage', on_delete=models.CASCADE, db_column='lifeStageID')  # Field name made lowercase.
     behaviorid = models.ForeignKey('Behavior', on_delete=models.CASCADE, db_column='behaviorID')  # Field name made lowercase.
-    #supraeventid = models.IntegerField(db_column='supraEventID', blank=True, null=True)  # Field name made lowercase.
+    supraeventid = models.IntegerField(db_column='supraEventID', blank=True, null=True, editable = False)  # Field name made lowercase.
     field_id = models.IntegerField(db_column='_id', primary_key = True, default = Occurence_Increment_field_id,editable = False)  # Field renamed because it started with '_'.
-    
+
+    #def save(self, *args, **kwargs):
+        #cameraid =  (Location.objects.get(locationid=self.locationid.locationid)).decimallongtitude
+        #self.latitude = (Location.objects.get(locationid=self.locationid.locationid)).decimallatitude
+        #try:
+            #self.coordinateuncertainty = Location.objects.get(locationid=self.locationid.locationid).coordinateUncertaintyInMeters
+        #except:
+            #self.coordinateuncertainty = 1
+        #super(Deployments, self).save()
+
+
     class Meta:
         managed = False
         db_table = 'Occurence'
@@ -108,4 +121,49 @@ def CreateEventFromMedia(sender, instance, **kwargs):
             locationid = instance.deploymentid.locationid
         )
     new_event.save()
+
+
+
+
+
+
+@receiver(signal=post_save, sender=Observation, dispatch_uid='add_occurence_on_new_observation')
+def CreateOccurenceFromObservation(sender, instance, **kwargs):
+    LastSupraEventID = Occurence.objects.all().order_by('supraeventid').last()
+    LastTime = Observation.objects.filter(deploymentid = instance.deploymentid).order_by('timestamp')[1].timestamp
+
+    ThisTime = instance.timestamp
+
+    #raise ValidationError(LastTime, ThisTime, LastSupraEventID.supraeventid)
+    print(LastTime)
+    print(ThisTime)
+    try: 
+        print(LastSupraEventID.supraeventid)
+    except:
+        pass
+    if not LastSupraEventID:
+        print("NONONO")
+        LastSupraEventID=1
+    elif LastTime + timedelta(minutes=15) <= ThisTime:
+        print("LARGER THAN< SHOULD BE INCREASED")
+        LastSupraEventID = int(LastSupraEventID.supraeventid)+1
+    else:
+        LastSupraEventID = int(LastSupraEventID.supraeventid)
+        print("SAME")
+
+    new_occurence = Occurence(
+        occurenceid = instance.observationid,
+        eventid = Event.objects.get(eventid = instance.mediaid),
+        taxonid = instance.taxonid,
+        sexid = Sex.objects.get(sextype = instance.sex),
+        lifestageid = Lifestage.objects.get(lifestagetype = instance.lifestage),
+        behaviorid = Behavior.objects.get(behaviortype = instance.behavior),
+        individualcount = instance.count,
+        supraeventid = LastSupraEventID
+
+    )
+    new_occurence.save()
+
+
+
 

@@ -43,7 +43,7 @@ router.register(r'media', views.MediaViewSet)
 router.register(r'observation', views.ObservationViewSet)
 router.register(r'occurence', views.OccurenceViewSet)
 router.register(r'location', views.LocationViewSet)
-
+#router.register(r'FilterByChoice', views.GetImg)
 
 urlpatterns = [
         path('', include(router.urls)),
