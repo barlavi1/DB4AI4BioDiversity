@@ -2,6 +2,9 @@ from rest_framework import serializers
 from database_site.models import *
 from database_site.models_queryObjects import *
 import django_filters
+
+
+
 class TaxonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Taxon
@@ -59,12 +62,9 @@ class AnnotatorsSerializer(serializers.HyperlinkedModelSerializer):
 class DeploymentsListSerializer(serializers.ListSerializer):
     def create(self, validated_data):
         Last = (Deployments.objects.latest('deploymentid')).deploymentid
-        #test = (Location.objects.get(locationid = "Zavitan_Hydro_2")).locationid
-        #raise ValidationError(len(test))
         for item in validated_data: 
             item['deploymentid']=int(Last)+1
             current_location = Location.objects.get(locationid=item['locationid'].locationid)
-            #raise ValidationError(item['locationid'].locationid)
             item['longitutde'] = current_location.decimallongtitude
             item['latitude'] = current_location.decimallatitude
             item['coordinateuncertainty'] = current_location.coordinateuncertaintyinmeters
@@ -79,8 +79,6 @@ class DeploymentsListSerializer(serializers.ListSerializer):
 
 
 class DeploymentsSerializer(serializers.ModelSerializer):
-    #def __init__(self, *args, **kwargs):
-        #super(DeploymentsSerializer, self).__init__(many=True, *args, **kwargs)
     class Meta:
         model = Deployments
         fields = '__all__'
@@ -99,11 +97,12 @@ class GradesSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class EventSerializer(serializers.ModelSerializer):
-    #eventid = serializers.HyperlinkedRelatedField(view_name='event-id', read_only=True)
+    mediaid = serializers.CharField(source='eventid.mediaid')
+    medialink = serializers.ImageField(source='eventid.filepath')
     class Meta:
         model = Event
         #fields = '__all__'
-        fields = ('eventremarks','eventdate','samplingprotocol', 'locationid')
+        fields = ('medialink','mediaid','eventremarks','eventdate','samplingprotocol', 'locationid','supraeventid')
 
 
 class MediaSerializer(serializers.HyperlinkedModelSerializer):

@@ -14,19 +14,18 @@ from datetime import datetime, timedelta
 from .models_AUTH_PERMISSIONS import *
 from .models_helpTables import *
 from .models_camtraps import *
-
+import pytz
+utc=pytz.UTC
 
 
 
 class Event(models.Model):
     eventid = models.OneToOneField('Media', on_delete=models.CASCADE, db_column='eventID', primary_key=True,editable = False )  # Field name made lowercase.
-    #eventid = models.CharField(db_column='eventID', primary_key=True,editable = False, max_length=255 )
     samplingprotocol = models.CharField(db_column='samplingProtocol', max_length=255)  # Field name made lowercase.
     eventdate = models.DateTimeField(db_column='eventDate', blank=True, null=True)  # Field name made lowercase.
     eventremarks = models.CharField(db_column='eventRemarks', max_length=255, blank=True, null=True)  # Field name made lowercase.
     locationid = models.ForeignKey('Location', on_delete=models.CASCADE, db_column='locationID', blank=True, null=True)  # Field name made lowercase.
-    #supraeventid = models.IntegerField(db_column='supraEventID', blank=True, null=True)  # Field name made lowercase.
-
+    supraeventid = models.IntegerField(db_column='supraEventID', blank=True, null=True, editable = False)  # Field name made lowercase.
     class Meta:
         managed = False
         db_table = 'Event'
@@ -37,7 +36,6 @@ def Occurence_Increment_field_id():
     last = Occurence.objects.all().order_by('field_id').last()
     if not last:
         return 1
-    #field_object = Media._meta.get_field('field_id')
     last = last.field_id
     return int(last)+1
                                 
@@ -50,17 +48,8 @@ class Occurence(models.Model):
     sexid = models.ForeignKey('Sex', on_delete=models.CASCADE, db_column='sexID')  # Field name made lowercase.
     lifestageid = models.ForeignKey('Lifestage', on_delete=models.CASCADE, db_column='lifeStageID')  # Field name made lowercase.
     behaviorid = models.ForeignKey('Behavior', on_delete=models.CASCADE, db_column='behaviorID')  # Field name made lowercase.
-    supraeventid = models.IntegerField(db_column='supraEventID', blank=True, null=True, editable = False)  # Field name made lowercase.
     field_id = models.IntegerField(db_column='_id', primary_key = True, default = Occurence_Increment_field_id,editable = False)  # Field renamed because it started with '_'.
 
-    #def save(self, *args, **kwargs):
-        #cameraid =  (Location.objects.get(locationid=self.locationid.locationid)).decimallongtitude
-        #self.latitude = (Location.objects.get(locationid=self.locationid.locationid)).decimallatitude
-        #try:
-            #self.coordinateuncertainty = Location.objects.get(locationid=self.locationid.locationid).coordinateUncertaintyInMeters
-        #except:
-            #self.coordinateuncertainty = 1
-        #super(Deployments, self).save()
 
 
     class Meta:
@@ -71,18 +60,7 @@ class Occurence(models.Model):
                 fields=['eventid', 'occurenceid'], name='unique_event_occurence_combination'
             )
         ]
-        #unique_together = (('eventid', 'occurenceid'),)
 
-#class SupraEventTable(models.Model):
-#    supraeventid = models.IntegerField(db_column='supraeventid',  primary_key = True)
-#    start_datetime =  models.DateTimeField(db_column='start_datetime')
-#    end_datetime =  models.DateTimeField(db_column='end_datetime')
-#    taxonid = models.ForeignKey(Taxon, on_delete = models.CASCADE, db_column='taxonid')
-#    locationid= models.ForeignKey(Location, on_delete = models.CASCADE, db_column='locationid')
-
-#    class Meta:
-#        managed = False
-#        db_table = 'SupraEventTable'
 
 
 
@@ -108,6 +86,25 @@ class Grades(models.Model):
 
 @receiver(signal=post_save, sender=Media, dispatch_uid='add_event_on_new_media')
 def CreateEventFromMedia(sender, instance, **kwargs):
+    LastSupraEventID = Event.objects.all().order_by('supraeventid').last() # Get lase supraeventid
+    try:
+        LastTime = Media.objects.filter(deploymentid = instance.deploymentid).order_by('-timestamp')[1] # previous image of this camera and location (deployment)
+        #print(LastTime.timestamp)
+    except:  # this is the first image of this camera and location
+        LastTime = instance.timestamp - timedelta(minutes=16) #last time = this time -16m, then supraeventid will be increased by 1 (a new supraeventid will be assigned to this image
+    else:
+        LastTime = LastTime.timestamp # last datetime of this camera and location (deployment)
+    ThisTime = instance.timestamp.replace(tzinfo=utc) #this datetime of this camera and location (deployment)
+    DeltaTime = (LastTime + timedelta(minutes=15)).replace(tzinfo=utc)
+    print(ThisTime)
+    print(DeltaTime)
+    if not LastSupraEventID: # this is the first image (of all cameras and locations (deployments)
+        SupraEventID=1
+    #elif LastTime + timedelta(minutes=15);
+    elif DeltaTime <= ThisTime: # this is a new supraeventid
+        SupraEventID = int(LastSupraEventID.supraeventid)+1
+    else: #this is the same supraeventid
+        SupraEventID = int(LastSupraEventID.supraeventid)
     capturemethod = instance.capturemethod
     if instance.capturemethod == "motion detection":
         capturemethod = "camera trap"
@@ -118,38 +115,16 @@ def CreateEventFromMedia(sender, instance, **kwargs):
             samplingprotocol = capturemethod,
             eventdate = instance.timestamp,
             eventremarks = instance.comments,
-            locationid = instance.deploymentid.locationid
+            locationid = instance.deploymentid.locationid,
+            supraeventid = SupraEventID
         )
     new_event.save()
 
 
 
-
-
-
 @receiver(signal=post_save, sender=Observation, dispatch_uid='add_occurence_on_new_observation')
 def CreateOccurenceFromObservation(sender, instance, **kwargs):
-    LastSupraEventID = Occurence.objects.all().order_by('supraeventid').last()
-    LastTime = Observation.objects.filter(deploymentid = instance.deploymentid).order_by('timestamp')[1].timestamp
 
-    ThisTime = instance.timestamp
-
-    #raise ValidationError(LastTime, ThisTime, LastSupraEventID.supraeventid)
-    print(LastTime)
-    print(ThisTime)
-    try: 
-        print(LastSupraEventID.supraeventid)
-    except:
-        pass
-    if not LastSupraEventID:
-        print("NONONO")
-        LastSupraEventID=1
-    elif LastTime + timedelta(minutes=15) <= ThisTime:
-        print("LARGER THAN< SHOULD BE INCREASED")
-        LastSupraEventID = int(LastSupraEventID.supraeventid)+1
-    else:
-        LastSupraEventID = int(LastSupraEventID.supraeventid)
-        print("SAME")
 
     new_occurence = Occurence(
         occurenceid = instance.observationid,
@@ -158,8 +133,7 @@ def CreateOccurenceFromObservation(sender, instance, **kwargs):
         sexid = Sex.objects.get(sextype = instance.sex),
         lifestageid = Lifestage.objects.get(lifestagetype = instance.lifestage),
         behaviorid = Behavior.objects.get(behaviortype = instance.behavior),
-        individualcount = instance.count,
-        supraeventid = LastSupraEventID
+        individualcount = instance.count
 
     )
     new_occurence.save()

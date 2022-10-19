@@ -23,8 +23,6 @@ from datetime import datetime, timedelta
 import pytz
 utc=pytz.UTC
 
-# Create your views here.
-
 
 
 class TaxonViewSet(viewsets.ModelViewSet):
@@ -39,16 +37,6 @@ class LocationViewSet(viewsets.ModelViewSet):
     queryset = Location.objects.all().order_by('locationid')
     serializer_class = LocationSerializer
     
-    #def create(self, request, *args, **kwargs):
-        #serializer = self.get_serializer(data=request.data)
-        #serializer.is_valid(raise_exception=True)
-        #obj = self.perform_create(serializer)
-        #headers = self.get_success_headers(serializer.data)
-        #return Response(self.get_serializer(obj).data, status=status.HTTP_201_CREATED, headers=headers)
-
-    #def perform_create(self, serializer):
-        #return serializer.save(host=self.request.user)
-
 class LifestageViewSet(viewsets.ModelViewSet):
     queryset = Lifestage.objects.all().order_by('lifestageid')
     serializer_class = LifestageSerializer
@@ -78,10 +66,6 @@ class DeploymentsViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, headers=headers)
 
 
-
-    #def post(self,instance = None, data = None, many = False, partial = False):
-        #return super(DeploymentsViewSet, self).post(instance=instance, many=True, data = data, partial=partial)
-
 class DeploymentListView(generics.ListAPIView):
     queryset = Deployments.objects.all()#.order_by('deploymentid')
     serializer_class = DeploymentsSerializer(queryset, many = True)
@@ -89,40 +73,16 @@ class DeploymentListView(generics.ListAPIView):
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
-    #filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
-    #filterset_fields = '__all__'
+    
 
 class MediaViewSet(viewsets.ModelViewSet):
     queryset = Media.objects.all().order_by('sequenceid')
     serializer_class = MediaSerializer
  
-    #def create(self, request):
-        #print(request.data.keys())
-
-        #img = Media.objects.filter(timestamp__gte = request.data['timestamp'])
-        #print(img) 
-        #return Response({'ok'})
-
-
-    #def retrieve(self, request, *args, **kwargs):
-        #img = self.objects.filter(timestamp__gte = kwargs['start'])
-        #serializer = MediaSerializer(img)
-        #return(serializer)
-
-    #filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
-    #filterset_fields = '__all__'
 
 class ObservationViewSet(viewsets.ModelViewSet):
     queryset = Observation.objects.all().order_by('sequenceid')
     serializer_class = ObservationSerializer
-
-    #def create(self, request):
-        #imgs = Observation.objects.filter(mediaid__timestamp__range = [request.data['start'], request.data['end']]).filter(deploymentid__cameraid =  request.data['cameraid']).filter(taxonid__genericname = request.data['animal'])
-        #return JsonResponse(serializers.serialize('json', imgs), safe=False)
-
-
-    #filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
-    #filterset_fields = '__all__'
 
 
 
@@ -132,22 +92,10 @@ class OccurenceViewSet(viewsets.ModelViewSet):
 
 
     def create(self, request):
-        #MediaObj = Even
-        #imgs_left = Occurence.objects.filter(eventid__eventdate__range = [request.data['start'], request.data['end']]).filter(taxonid__genericname = request.data['animal']) 
-        #imgs_right = Media.objects.filter(deploymentid__cameraid =  request.data['cameraid'])
-        #imgs = Occurence.objects.filter(eventid__eventdate__range = [request.data['start'], request.data['end']]).filter(taxonid__genericname = request.data['animal']).select_related('eventid') #WORKS!!!
-        
         imgs = Occurence.objects.filter(eventid__eventdate__range = [request.data['start'], request.data['end']]).filter(taxonid__genericname = request.data['animal']).filter(eventid__eventid__deploymentid__cameraid =  request.data['cameraid'])
-        #imgs = imgs_right.select_related(
-        #imgs =  imgs_left.filter(evenid = imgs_right.mediaid)
 
         print(imgs)
-        #print(imgs_left)
-        #imgs = Occurence.objects.select_related("sexid").filter(sexid__sextype = "unknown")
-        #imgs = Occurence.objects.filter(eventid__eventdate__range = [request.data['start'], request.data['end']]).filter(eventid__deploymentid__cameraid =  request.data['cameraid']).filter(taxonid__genericname = request.data['animal'])
         return JsonResponse(serializers.serialize('json', imgs), safe=False)
-
-
 
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
     filterset_fields = '__all__'

@@ -9,7 +9,14 @@ from .models_helpTables import Location
 import os
 from PIL import Image
 import PIL.ExifTags
+from exiffield.fields import ExifField
+#from exif import Image
+#from exiffield.getters import exifgetter
+
+from exiffield.getters import exifgetter
 from datetime import datetime
+
+
 import pytz
 utc=pytz.UTC
 
@@ -17,9 +24,8 @@ def Media_Increment_field_id():
     last = Media.objects.all().order_by('field_id').last()
     if not last:
         return 1
-    field_object = Media._meta.get_field('field_id')
-    last = field_object.value_from_object(last)
-    return int(last)+1
+     
+    return int(last.field_id)+1
 
 
 def path_and_rename(path):
@@ -48,12 +54,13 @@ class Media(models.Model):
     timestamp = models.DateTimeField(db_column = 'timestamp', editable = False)
     filepath = models.ImageField(upload_to=path_and_rename('images/'))
     filename = models.CharField(db_column='fileName', max_length=255, blank=True, null=True,editable = False)  # Field name made lowercase.
-    filemediatype = models.CharField(db_column='fileMediatype', max_length=255, editable = False)  # Field name made lowercase.
-    exifdata = models.CharField(db_column='exifData', max_length=255, blank=True, null=True)  # Field name made lowercase.
+    filemediatype = models.CharField(db_column='fileMediatype', max_length = 255, editable = False)  # Field name made lowercase.
+    #exifdata = ExifField(source='filepath' ,db_column='exifData', blank=True, null=True)  # Field name made lowercase.
+    exifdata = models.CharField(max_length=255, db_column='exifData', blank=True, null=True)  # Field name made lowercase.
     favourite = models.CharField(max_length=255, blank=True, null=True)
-    comments = models.CharField(max_length=255, blank=True, null=True)
-    field_id = models.IntegerField(db_column='_id', primary_key=True, default = Media_Increment_field_id,editable = False)  # Field renamed because it started with '_'.
-
+    comments = models.CharField(max_length=255, blank=True, null=True, editable = False)
+    #field_id = models.IntegerField(db_column='_id', primary_key=True, default = Media_Increment_field_id,editable = False)  # Field renamed because it started with '_'.
+    field_id = models.AutoField(db_column = "_id", primary_key=True, editable = False)
 
     def save(self, *args, **kwargs):
         image = Image.open(self.filepath)
@@ -63,47 +70,55 @@ class Media(models.Model):
                 for k, v in image._getexif().items()
                     if k in PIL.ExifTags.TAGS
             }
+        cameraid = exif['BodySerialNumber']
         try:
-            date_object = datetime.strptime(exif['DateTime'],'%Y:%m:%d %H:%M:%S' )
+            date_object = datetime.strptime(exif['DateTimeOriginal'],'%Y:%m:%d %H:%M:%S' )
             self.timestamp = date_object
         except:
-            raise ValidationError("not date in exif data")
+            raise ValidationError("no date in exif data or datetime is in a wrong format")
         try:
             self.filemediatype = image.format
         except:
-            raise ValidationError("format wrong " + image.format)
+            raise ValidationError("format wrong ")
         try:
-            serial_number = exif['Camera_serial_number']
+            serial_number = exif['BodySerialNumber']
         except:
-            serial_number = "ABC"
+            raise ValidationError("no serial number")
+        camera_deployments = Deployments.objects.filter(cameraid = cameraid)
         try:
-            camera_deployments = Deployments.objects.filter(cameraid = serial_number)
+            camera_deployments = Deployments.objects.filter(cameraid = cameraid)
+            
             for deployment in camera_deployments:
                 start_time =  deployment.start.replace(tzinfo=utc)
                 end_time =  deployment.end.replace(tzinfo=utc)
                 curr_time = date_object.replace(tzinfo=utc)
-                if start_time < curr_time and end_time > curr_time:
+                if start_time <= curr_time and end_time >= curr_time:
                     self.deploymentid = deployment
         except:
-            raise ValidationError("deployment is wrong " + serial_number+ "  " + str(date_object))            
+            raise ValidationError("deployment is wrong " + cameraid+ "  " + str(date_object))            
         self.mediaid =  str(self.timestamp)+str(self.filepath)
         self.filename = str(self.filepath).split("\\")[-1]
         super(Media, self).save()
+
 
 
     class Meta:
         managed = False
         db_table = 'Media'
 
-
+# make sure uploading image is in chronological order
 @receiver(pre_save, sender = Media)
 def VerifyChronologicalUploading(sender, instance, **kwarg):
-    LastUploadTime = sender.objects.filter(deploymentid = instance.deploymentid).order_by('timestamp').last()
-    if LastUploadTime:
-        LastUploadTime = LastUploadTime.timestamp.replace(tzinfo=utc)
-        time = instance.timestamp.replace(tzinfo=utc)
-        if LastUploadTime > time:
-            raise ValidationError("New upload was taken earlier than latest upload")
+    try:
+        LastUploadTime = sender.objects.filter(deploymentid = instance.deploymentid).order_by('timestamp').last()
+    except:
+        pass
+    else:
+        if LastUploadTime:
+            LastUploadTime = LastUploadTime.timestamp.replace(tzinfo=utc)
+            time = instance.timestamp.replace(tzinfo=utc)
+            if LastUploadTime >= time:
+                raise ValidationError("New upload was taken earlier than latest upload")
 
 
 
@@ -162,11 +177,7 @@ def IncrementObservationID():
     last = Observation.objects.all().order_by('field_id').last()
     if not last:
         return 1
-
-    #field_object = Observation._meta.get_field('field_id')
-    #last = field_object.value_from_object(last)
-    last = last.field_id
-    return last+1 
+    return last.field_id+1 
 
 class Observation(models.Model):
     ObservationTypeChoices = (('unclassified','unclassified'),('animal','animal'),('human','human'),('vehicle','vehicle'),('blank','blank'),('unknown','unknown'),)
@@ -209,18 +220,11 @@ class Observation(models.Model):
             raise ValidationError("no such taxonid as "+str(self.taxonid))
         self.deploymentid = self.mediaid.deploymentid #set deployment from media table
         self.sequenceid = first #set sequenceid 
-        #if self.sex == '':
-            #self.sex = 'unknown'
-        #if self.lifestage == '':
-            #self.lifestage = 'unknown'
-        #if self.behavior == '':
-            #self.behavior = 'unknown'
-
         super(Observation, self).save()
+    
     class Meta:
         managed = False
         db_table = 'Observation'
-        #unique_together = (('mediaid', 'observationid'),)
         constraints = [
             models.UniqueConstraint(
                 fields=['observationid','sequenceid', 'mediaid'], name='unique_media_sequence_observation_combination'
