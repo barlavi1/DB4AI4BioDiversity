@@ -96,8 +96,8 @@ def CreateEventFromMedia(sender, instance, **kwargs):
         LastTime = LastTime.timestamp # last datetime of this camera and location (deployment)
     ThisTime = instance.timestamp.replace(tzinfo=utc) #this datetime of this camera and location (deployment)
     DeltaTime = (LastTime + timedelta(minutes=15)).replace(tzinfo=utc)
-    print(ThisTime)
-    print(DeltaTime)
+    #print(ThisTime)
+    #print(DeltaTime)
     if not LastSupraEventID: # this is the first image (of all cameras and locations (deployments)
         SupraEventID=1
     #elif LastTime + timedelta(minutes=15);
