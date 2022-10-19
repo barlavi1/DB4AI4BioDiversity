@@ -122,8 +122,6 @@ def CreateEventFromMedia(sender, instance, **kwargs):
 
 @receiver(signal=post_save, sender=Observation, dispatch_uid='add_occurence_on_new_observation')
 def CreateOccurenceFromObservation(sender, instance, **kwargs):
-
-
     new_occurence = Occurence(
         occurenceid = instance.observationid,
         eventid = Event.objects.get(eventid = instance.mediaid),
