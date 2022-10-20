@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'database_site',
     'rest_framework',
     'django_filters',
+    'rest_framework_simplejwt',
+    'rest_framework.authtoken'
 
 ]
 
@@ -47,6 +49,9 @@ INSTALLED_APPS = [
 
 REST_FRAMEWORK = {
         'COERCE_DECIMAL_TO_STRING': False,
+        'DEFAULT_AUTHENTICATION_CLASSES': (
+            'rest_framework_simplejwt.authentication.JWTAuthentication',
+            )
 }
 
 

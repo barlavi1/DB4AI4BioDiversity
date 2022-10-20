@@ -21,6 +21,7 @@ from rest_framework.response import Response
 from django.core import serializers
 from datetime import datetime, timedelta
 import pytz
+from rest_framework.permissions import IsAuthenticated
 utc=pytz.UTC
 
 
@@ -34,9 +35,10 @@ class AiViewSet(viewsets.ModelViewSet):
     serializer_class = AiSerializer
 
 class LocationViewSet(viewsets.ModelViewSet):
+    permission_classes = (IsAuthenticated,)
     queryset = Location.objects.all().order_by('locationid')
     serializer_class = LocationSerializer
-    
+        
 class LifestageViewSet(viewsets.ModelViewSet):
     queryset = Lifestage.objects.all().order_by('lifestageid')
     serializer_class = LifestageSerializer
