@@ -27,7 +27,6 @@ from rest_framework_simplejwt.views import (
         TokenVerifyView,
     )
 
-
 router = routers.DefaultRouter()
 router.register(r'taxon', views.TaxonViewSet)
 router.register(r'ai', views.AiViewSet)
