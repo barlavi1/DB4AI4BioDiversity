@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from database_site.models import *
-from database_site.models_queryObjects import *
+#from database_site.models_queryObjects import *
 import django_filters
 
 
@@ -21,7 +21,7 @@ class LocationSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Location
         #fields = '__all__'
-        fields = ('locationid','decimallatitude','decimallongtitude','coordinateuncertaintyinmeters','continen','country','county')
+        fields = ('locationid','locationname','decimallatitude','decimallongtitude','coordinateuncertaintyinmeters','continen','country','county')
 
 class BehaviorSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
@@ -74,10 +74,6 @@ class DeploymentsListSerializer(serializers.ListSerializer):
         return Deployments.objects.bulk_create(deployment)
 
 
-        
-
-
-
 class DeploymentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Deployments
@@ -97,25 +93,25 @@ class GradesSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class EventSerializer(serializers.ModelSerializer):
-    mediaid = serializers.CharField(source='eventid.mediaid')
-    medialink = serializers.ImageField(source='eventid.filepath')
+    #mediaid = serializers.CharField(source='eventid.mediaid')
+    #medialink = serializers.ImageField(source='eventid.filepath')
     class Meta:
         model = Event
-        #fields = '__all__'
-        fields = ('medialink','mediaid','eventremarks','eventdate','samplingprotocol', 'locationid','supraeventid')
-
-
-class MediaSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = Media
         fields = '__all__'
+        #fields = ('medialink','mediaid','eventremarks','eventdate','samplingprotocol', 'locationid','supraeventid')
+
+
+#class MediaSerializer(serializers.HyperlinkedModelSerializer):
+#    class Meta:
+#        model = Media
+#        fields = '__all__'
         #fields = ('mediaid','deploymentid','sequenceid', 'capturemethod','timestamp','filepath','filename','filemediatype', 'exifdata', 'favourite', 'comments')
 
 
-class ObservationSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = Observation
-        fields = '__all__'
+#class ObservationSerializer(serializers.HyperlinkedModelSerializer):
+#    class Meta:
+#        model = Observation
+#        fields = '__all__'
         #fields = ('observationid','deploymentid','sequenceid','mediaid','timestamp','observationtype', 'camerasetup','taxonid','scientificname','count','countnew','lifestage','sex','behavior', 'individualid','classificationmethod','classifiedby','classificationtimestamp','classificationconfidence','comments')
 
 
@@ -126,7 +122,10 @@ class OccurenceSerializer(serializers.HyperlinkedModelSerializer):
         #fields = ('occurenceid','eventid', 'taxonid','individualcount','sexid','lifestageid','behaviorid')
 
 
-
+class PreUploadSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = PreUpload
+        fields = '__all__'
 
 
 

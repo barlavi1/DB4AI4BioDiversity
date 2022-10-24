@@ -97,18 +97,16 @@ class Lifestage(models.Model):
         db_table = 'LifeStage'
 
 class Location(models.Model):
-    locationid = models.CharField(db_column='locationID', max_length=255, null = False, blank = False, primary_key = True, editable = True)  # Field name made lowercase.
+    locationid = models.CharField(db_column='locationID', max_length=255, null = False, blank = False, primary_key = True)  # Field name made lowercase.
     #decimallatitude = models.FloatField(db_column='decimalLatitude', validators=[MinValueValidator(-90.00000000), MaxValueValidator(90.00000000)], blank=True, null=True)  # Field name made lowercase.
     #decimallongtitude = models.FloatField(db_column='decimalLongtitude',validators=[MinValueValidator(-180.00000000), MaxValueValidator(180.00000000)],  blank=True, null=True)  # Field name made lowercase.
     decimallatitude = models.DecimalField(db_column='decimalLatitude',max_digits = 10, decimal_places = 8, validators=[MinValueValidator(-90.00000000), MaxValueValidator(90.00000000)], blank=True, null=True)  # Field name made lowercase.
     decimallongtitude = models.DecimalField(db_column='decimalLongtitude',max_digits = 11, decimal_places = 8,validators=[MinValueValidator(-180.00000000), MaxValueValidator(180.00000000)],  blank=True, null=True)  # Field name made lowercase.
-
-
     coordinateuncertaintyinmeters = models.IntegerField(db_column='coordinateUncertaintyInMeters', blank=True, null=True)  # Field name made lowercase.
     continen = models.CharField(max_length=255, blank=True, null=True)
     country = models.CharField(max_length=255, blank=True, null=True)
     county = models.CharField(max_length=255, blank=True, null=True)
-
+    locationname = models.CharField(max_length=255, blank=True, null=True, db_column='locationName')
 
     class Meta:
         managed = False
@@ -122,5 +120,15 @@ class Tasks(models.Model):
     class Meta:
         managed = False
         db_table = 'Tasks'
+
+class PreUpload(models.Model):
+    img = models.ImageField(db_column = 'img',upload_to='RAW/')
+    field_id =  models.AutoField(db_column = "_id", primary_key=True, editable = False)
+
+    class Meta:
+        managed = False
+        db_table = 'PreUpload'
+
+
 
 

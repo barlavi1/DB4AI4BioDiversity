@@ -3,12 +3,14 @@ from rest_framework.viewsets import ViewSet,ReadOnlyModelViewSet
 from django.shortcuts import render
 #from database_site.models import Location,Taxon,Lifestage,Sex,Ai,Tasks,Annotators,Deployments,Event,Media,Observation,Occurence,Behavior,Grades
 from database_site.models import *
-from database_site.models_queryObjects import *
+#from database_site.models_queryObjects import *
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.serializers import *
 from rest_framework import viewsets
+from rest_framework.views import APIView
 from .serializers import *
+from .Objects import *
 #from .serializers import TaxonSerializer, AiSerializer,LifestageSerializer,SexSerializer,LocationSerializer,TasksSerializer,AnnotatorsSerializer,DeploymentsSerializer,MediaSerializer,ObservationSerializer,OccurenceSerializer,BehaviorSerializer,GradesSerializer,EventSerializer
 from rest_framework.decorators import api_view
 from django.http.response import JsonResponse
@@ -23,7 +25,7 @@ from datetime import datetime, timedelta
 import pytz
 from rest_framework.permissions import IsAuthenticated
 utc=pytz.UTC
-
+import csv
 
 
 class TaxonViewSet(viewsets.ModelViewSet):
@@ -35,7 +37,7 @@ class AiViewSet(viewsets.ModelViewSet):
     serializer_class = AiSerializer
 
 class LocationViewSet(viewsets.ModelViewSet):
-    permission_classes = (IsAuthenticated,)
+    #permission_classes = (IsAuthenticated,)
     queryset = Location.objects.all().order_by('locationid')
     serializer_class = LocationSerializer
         
@@ -77,30 +79,114 @@ class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     
 
-class MediaViewSet(viewsets.ModelViewSet):
-    queryset = Media.objects.all().order_by('sequenceid')
-    serializer_class = MediaSerializer
+#class MediaViewSet(viewsets.ModelViewSet):
+#    queryset = Media.objects.all().order_by('sequenceid')
+#    serializer_class = MediaSerializer
+
  
+#class ObservationViewSet(viewsets.ModelViewSet):
+#    queryset = Observation.objects.all()
+#    serializer_class = ObservationSerializer
 
-class ObservationViewSet(viewsets.ModelViewSet):
-    queryset = Observation.objects.all().order_by('sequenceid')
-    serializer_class = ObservationSerializer
+class TEST_VIEW(viewsets.ViewSet):
+    
+    def list(self, request):
+        MediaData = []
+        queryset = Event.objects.all()
+        for e in queryset:
+            if 1==1:
+                event_serializer = EventSerializer(e, many=False)
+                event_info = dict(event_serializer.data)
+                fileName = (str(e.filepath).split("\\")[-1]).split("/")[-1]
+                img = Image.open(e.filepath)
+                filemediatype = img.format
+                exif = {
+                    PIL.ExifTags.TAGS[k]: v
+                    for k, v in img._getexif().items()
+                    if k in PIL.ExifTags.TAGS
+                }
+                img.close()
+                print( e.eventdate)
+                MediaData.append(MediaInfo(
+                    mediaid=e.eventid,
+                    deploymentid = e.deploymentid.deploymentid,
+                    sequenceid=e.supraeventid,
+                    capturemethod = e.samplingprotocol,
+                    timestamp = e.eventdate,
+                    filepath = str(e.filepath),
+                    filemediatype = filemediatype,
+                    exifdata = str(exif),
+                    favourite='',
+                    comments=e.eventremarks,
+                    field_id=e.eventid
+                ).__dict__)
+            else:
+                print("somethin is wrong with "+str(e.eventid)+ " " + str(e.filepath))
+        return Response({'queryset': MediaData})
 
 
+class GetImages(viewsets.ViewSet):
+    def create(self, request):
+        imgs = Occurence.objects.filter(eventid__eventdate__range = [request.data['start'], request.data['end']]).filter(taxonid__genericname = request.data['animal']).filter(eventid__deploymentid__cameraid =  request.data['cameraid'])        
+        print(imgs)
+        
+        response = HttpResponse(
+                content_type='text/csv',
+                headers={'Content-Disposition': f'attachment; filename="test.csv"'}
+            )
+        #response['Content-Disposition'] = 'attachment; filename="file.csv"'
+        writer = csv.writer(response, quoting=csv.QUOTE_NONE, escapechar = ' ')
+
+
+        imgsData = []
+        supraEventIDs = []
+        max_images = 0
+        #supraEventIDs_dict = dict()
+        for img in imgs:
+            supraEventIDs.append(Event.objects.get(eventid=img.eventid.eventid).supraeventid)
+        supraEventIDs = set(supraEventIDs)
+        for supraeventid in supraEventIDs:
+            imgs_cluster = Occurence.objects.filter(eventid__eventdate__range = [request.data['start'], request.data['end']]).filter(taxonid__genericname = request.data['animal']).filter(eventid__deploymentid__cameraid =  request.data['cameraid']).filter(eventid__supraeventid = supraeventid)
+            num_images = len(imgs_cluster)
+            if num_images > max_images:
+                max_images = num_images
+        header = []
+        header.append("id")
+        for i in range(max_images):
+            header.append("image"+str(i+1))
+        header.append("start")
+        header.append("end")
+        writer.writerow(header)
+        for supraeventid in supraEventIDs:
+            start = Event.objects.filter(supraeventid = supraeventid).order_by('eventdate')[0].eventdate
+            end = Event.objects.filter(supraeventid = supraeventid).order_by('-eventdate')[0].eventdate
+            imgs_cluster = Occurence.objects.filter(eventid__eventdate__range = [request.data['start'], request.data['end']]).filter(taxonid__genericname = request.data['animal']).filter(eventid__deploymentid__cameraid =  request.data['cameraid']).filter(eventid__supraeventid = supraeventid)
+            #img_cluster = imgs.objects.select_related('Event').filter(event__eventid__supraeventid = supraeventi
+            FilePaths= []            
+            for im in imgs_cluster:
+                img_filePath = (str(im.eventid.filepath).split("\\")[-1]).split("/")[-1]
+                FilePaths.append(str(img_filePath))
+            num_images = len(FilePaths)
+            FilePaths = ",".join(FilePaths) + ","*(max_images-num_images)
+            print(FilePaths)
+            #print(start,end,request.data['cameraid'],request.data['animal'],FilePaths,supraeventid)
+            imgsData.append(ImgInfo(
+                start = start,
+                end = end,
+                cameraid = request.data['cameraid'],
+                animal = request.data['animal'],
+                imgName = FilePaths,
+                supraeventid = supraeventid
+            ).__dict__)
+           # print(imgsData)
+            writer.writerow([supraeventid,FilePaths,start,end])
+        return response 
+        #return Response({'queryset': imgsData})
+        #return JsonResponse(serializers.serialize('json', imgsData), safe=False)
 
 class OccurenceViewSet(viewsets.ModelViewSet):
     queryset = Occurence.objects.all()
     serializer_class = OccurenceSerializer
-
-
-    def create(self, request):
-        imgs = Occurence.objects.filter(eventid__eventdate__range = [request.data['start'], request.data['end']]).filter(taxonid__genericname = request.data['animal']).filter(eventid__eventid__deploymentid__cameraid =  request.data['cameraid'])
-
-        print(imgs)
-        return JsonResponse(serializers.serialize('json', imgs), safe=False)
-
-    filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
-    filterset_fields = '__all__'
 
 class BehaviorViewSet(viewsets.ModelViewSet):
     queryset = Behavior.objects.all().order_by('behaviorid')
@@ -110,112 +196,116 @@ class GradesViewSet(viewsets.ModelViewSet):
     queryset = Grades.objects.all().order_by('grade')
     serializer_class = GradesSerializer
 
+class PreUploadViewSet(viewsets.ModelViewSet):
+    queryset = PreUpload.objects.all()
+    serializer_class = PreUploadSerializer
+
 """
-class GetImg(viewsets.ModelViewSet):
-    queryset = Observation.objects.all()
-    serializer_class = ObservationSerializer
+class getimg(viewsets.modelviewset):
+    queryset = observation.objects.all()
+    serializer_class = observationserializer
     #filterset_fields = ('animal')
     
     #def retrieve(self, request, *args, **kwargs):
-        #img = Observation.objects.select_related().filter(mediaid = args['cameraid'])
-        #serializer = ObservationSerializer(img)
+        #img = observation.objects.select_related().filter(mediaid = args['cameraid'])
+        #serializer = observationserializer(img)
         #return(img)
 
 
 
 
-class FiltByChoiceManager(django_filters.FilterSet):
-    from_start = django_filters.DateTimeFilter(field_name = "start", lookup_type='gte')
-    to_end = django_filters.DateTimeFilter(field_name = "end", lookup_type='lte')
-    animal = django_filters.CharFilter(field_name = 'animal', lookup_type='exact')
-    cameraid = django_filters.CharFilter(field_name = 'cameraid', lookup_type='exact')
+class filtbychoicemanager(django_filters.filterset):
+    from_start = django_filters.datetimefilter(field_name = "start", lookup_type='gte')
+    to_end = django_filters.datetimefilter(field_name = "end", lookup_type='lte')
+    animal = django_filters.charfilter(field_name = 'animal', lookup_type='exact')
+    cameraid = django_filters.charfilter(field_name = 'cameraid', lookup_type='exact')
     
-    class Meta:
-        model = FetchImages
+    class meta:
+        model = fetchimages
         fields = '__all__'
 
-#class FilterByChoiceViewSet(ReadOnlyModelViewSet):
-#    queryset = FetchImages.objects.all()
-    #serializer_class=FetchImagesSerializer
-    #serializer_class = FetchImagesSerializer
-    #def Get(request,animal):
-        #Result = queryset.filter(animal=animal)
-        #serializer = FetchImagesSerializer(Result)
-        #return Response(serializer.data)
+#class filterbychoiceviewset(readonlymodelviewset):
+#    queryset = fetchimages.objects.all()
+    #serializer_class=fetchimagesserializer
+    #serializer_class = fetchimagesserializer
+    #def get(request,animal):
+        #result = queryset.filter(animal=animal)
+        #serializer = fetchimagesserializer(result)
+        #return response(serializer.data)
     #def list(self, request):
-        #serializer = FetchImagesSerializer(self.queryset, many=True)
-        #return Response(serializer.data)
+        #serializer = fetchimagesserializer(self.queryset, many=true)
+        #return response(serializer.data)
 
 #    def retrieve(self, request, *args, **kwargs):
-#        img = FetchImages.objects.filter(animal = args['animal'])
-#        serializer = FetchImagesSerializer(img)
-#        return Response(serializer)
-        #get_object_or_404(self.queryset,animal = "WOLF")
-        #serializer = FetchImagesSerializer(img)
-        #return Response(serializer.data)
+#        img = fetchimages.objects.filter(animal = args['animal'])
+#        serializer = fetchimagesserializer(img)
+#        return response(serializer)
+        #get_object_or_404(self.queryset,animal = "wolf")
+        #serializer = fetchimagesserializer(img)
+        #return response(serializer.data)
 
-    #@api_view(['GET','PUT','DELETE'])
-    #def GetImg(request,animal):
+    #@api_view(['get','put','delete'])
+    #def getimg(request,animal):
         #try:
-            #Result = FetchImages.objects.filter(animal=animal)
-        #except FetchImages.DoesNotExist:
-            #return Response(status=HTTP_404_NOT_FOUND)
-        #if request.method == 'GET':
-            #serializer = FetchImagesSerializer(Result)
-            #return Response(serializer.data)
-#class FilterByChoiceViewSet(generics.ListCreateAPIView):
-    #queryset = FetchImages.objects.all()
-    #queryset = FetchImages.objects.filter(start__range=["start", "end"])
-    #filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
-    #filter_class = FiltByChoiceManager
-    #serializer_class = FetchImagesSerializer
+            #result = fetchimages.objects.filter(animal=animal)
+        #except fetchimages.doesnotexist:
+            #return response(status=http_404_not_found)
+        #if request.method == 'get':
+            #serializer = fetchimagesserializer(result)
+            #return response(serializer.data)
+#class filterbychoiceviewset(generics.listcreateapiview):
+    #queryset = fetchimages.objects.all()
+    #queryset = fetchimages.objects.filter(start__range=["start", "end"])
+    #filter_backends = [django_filters.rest_framework.djangofilterbackend]
+    #filter_class = filtbychoicemanager
+    #serializer_class = fetchimagesserializer
     #name = 'robot-list'
     #filterset_fields = ['animal','start']
 
 
-    def list(self, request, animal = None):
-        if animal == None:
-            images = FetchImages.objects.filter(animal="WOLF")
+    def list(self, request, animal = none):
+        if animal == none:
+            images = fetchimages.objects.filter(animal="wolf")
         else:
-            images = models.Product.objects.filter(animal = 'WOLF')
+            images = models.product.objects.filter(animal = 'wolf')
         images = self.filter_queryset(images)
         page = self.paginate_queryset(images)
 
-        serializer = self.get_serializer(page, many=True)
+        serializer = self.get_serializer(page, many=true)
         result_set = serializer.data
-        return Response(result_set)
+        return response(result_set)
 
 
 
     def get_result_set(self, images):
-        result_set = serializers.FetchImagesSerializer(images, many=True).data
+        result_set = serializers.fetchimagesserializer(images, many=true).data
         return result_set
    
     #filterset_fields = ''
-    #def FetchImg(self,cameraid,animal,start,end):
-        #queryset = Media.objects.filter(timestamp__range = [start,end])
-        #queryset = FetchImages.objects.filter(animal=animal)
-        #return Response(res)
+    #def fetchimg(self,cameraid,animal,start,end):
+        #queryset = media.objects.filter(timestamp__range = [start,end])
+        #queryset = fetchimages.objects.filter(animal=animal)
+        #return response(res)
     
-    #filter_backends = [django_filters.rest_framework.DjangoFilterBackend]#,django_filters.rest_framework.OrderingFilter]
+    #filter_backends = [django_filters.rest_framework.djangofilterbackend]#,django_filters.rest_framework.orderingfilter]
     #filterset_fields = ['cameraid', 'start', 'end', 'animal']
     #filterset_fields = ['animal','start']
     
 
     #def my_custom_filter(self, queryset, cameraid, animel):
         #eturn queryset.filter(**{
-    #filter_backends = [django_filters.rest_framework.DjangoFilterBackend] #,django_filters.IsoDateTimeFilter]
+    #filter_backends = [django_filters.rest_framework.djangofilterbackend] #,django_filters.isodatetimefilter]
     #filterset_fields = ['cameraid', 'start', 'end', 'animal']
     #queryset = get_queryset()
     #def get_queryset(self):
-        #queryset = FetchImages.objects.all()
+        #queryset = fetchimages.objects.all()
         #animal = self.request.query_params.get('animal')
-        #if animal is not None:
+        #if animal is not none:
             #queryset = queryset.filter(animal_animal=animal)
         #return queryset
 
     #queryset = get_queryset
-    #def FetchImg(self, cameraid,start,end,animal):
+    #def fetchimg(self, cameraid,start,end,animal):
         #start = start.replace(tzinfo=utc)
         #end = end.replace(tzinfo=utc)
         #raise ValidationError(queryset.last().start)

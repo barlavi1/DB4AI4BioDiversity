@@ -38,10 +38,16 @@ router.register(r'annotators', views.AnnotatorsViewSet)
 router.register(r'deployments', views.DeploymentsViewSet)
 router.register(r'grades', views.GradesViewSet)
 router.register(r'event', views.EventViewSet)
-router.register(r'media', views.MediaViewSet)
-router.register(r'observation', views.ObservationViewSet)
+#router.register(r'media', views.MediaViewSet)
+#router.register(r'observation', views.ObservationViewSet)
 router.register(r'occurence', views.OccurenceViewSet)
 router.register(r'location', views.LocationViewSet)
+router.register(r'PreUpload', views.PreUploadViewSet)
+router.register(r'TEST_VIEW', views.TEST_VIEW, basename='experiments')
+router.register(r'GetImages', views.GetImages, basename='experiments1')
+
+
+
 #router.register(r'FilterByChoice', views.GetImg)
 
 urlpatterns = [
