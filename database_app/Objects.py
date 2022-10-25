@@ -15,12 +15,13 @@ class MediaInfo:
             self.field_id = field_id
 
 class ImgInfo:
-    def __init__(self,start,end,supraeventid,cameraid,animal,imgName):
+    def __init__(self,start,end,supraeventid,cameraid,animal,imgName,locationName):
         self.start=start
         self.end=end
         self.supraeventid=supraeventid
         self.cameraid=cameraid
         self.animal=animal
         self.imgName=imgName
+        self.locationName = locationName
 
 

@@ -26,7 +26,8 @@ import pytz
 from rest_framework.permissions import IsAuthenticated
 utc=pytz.UTC
 import csv
-
+import zipfile
+from io import StringIO, BytesIO
 
 class TaxonViewSet(viewsets.ModelViewSet):
     queryset = Taxon.objects.all().order_by('genericname')
@@ -79,15 +80,6 @@ class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     
 
-#class MediaViewSet(viewsets.ModelViewSet):
-#    queryset = Media.objects.all().order_by('sequenceid')
-#    serializer_class = MediaSerializer
-
- 
-#class ObservationViewSet(viewsets.ModelViewSet):
-#    queryset = Observation.objects.all()
-#    serializer_class = ObservationSerializer
-
 class TEST_VIEW(viewsets.ViewSet):
     
     def list(self, request):
@@ -127,63 +119,98 @@ class TEST_VIEW(viewsets.ViewSet):
 
 class GetImages(viewsets.ViewSet):
     def create(self, request):
-        imgs = Occurence.objects.filter(eventid__eventdate__range = [request.data['start'], request.data['end']]).filter(taxonid__genericname = request.data['animal']).filter(eventid__deploymentid__cameraid =  request.data['cameraid'])        
-        print(imgs)
-        
-        response = HttpResponse(
+        imgs_cluster  = Occurence.objects.filter(eventid__eventdate__range = [request.data['start'], request.data['end']]).filter(taxonid__genericname = request.data['animal']).filter(eventid__deploymentid__cameraid =  request.data['cameraid']).order_by('eventid__eventdate')        
+        if len(imgs_cluster) > 0:
+            response = HttpResponse(
                 content_type='text/csv',
-                headers={'Content-Disposition': f'attachment; filename="test.csv"'}
+                headers={'Content-Disposition': f'attachment; filename="manifest.csv"'}
             )
-        #response['Content-Disposition'] = 'attachment; filename="file.csv"'
-        writer = csv.writer(response, quoting=csv.QUOTE_NONE, escapechar = ' ')
+            writer = csv.writer(response, quoting=csv.QUOTE_NONE, escapechar = ' ')
+            all_filenames =  []
 
+            imgsData = []
+            max_images = 0
+            header = []
+            header.append("#subject_id")
+            csvfile = open("manifest.csv","w")
+            
+            SupraEventStart,SupraEventEnd = imgs_cluster[0].eventid.eventdate.replace(tzinfo=utc),imgs_cluster[0].eventid.eventdate.replace(tzinfo=utc) + timedelta(minutes=15)
+            SupraEventID = 0
+            Bool = 0
+            Event_Imgs = []
+            for img in imgs_cluster:
+                if (str(img.eventid.filepath).split("\\")[-1]).split("/")[-1] not in Event_Imgs:
+                    all_filenames.append("./media/"+str(img.eventid.filepath))
+                    print("./media/"+str(img.eventid.filepath))
+                    if Bool == 0: #First supra event id
+                        Bool = 1
+                        SupraEventStart = imgs_cluster[0].eventid.eventdate.replace(tzinfo=utc)
+                        SupraEventEnd = imgs_cluster[0].eventid.eventdate.replace(tzinfo=utc)
+                        SupraEventID = 1
+                        Event_Imgs.append((str(img.eventid.filepath).split("\\")[-1]).split("/")[-1]) # add image to new super event id images
+                        LocationName = img.eventid.deploymentid.locationid.locationname
+                    else: #new supra event id
+                        EventStart = img.eventid.eventdate.replace(tzinfo=utc)
+                        if EventStart >= SupraEventEnd + timedelta(minutes=15): # a new supraeventid
+                            imgsData.append(ImgInfo(
+                                start = SupraEventStart,
+                                end = SupraEventEnd,
+                                cameraid = request.data['cameraid'],
+                                animal = request.data['animal'],
+                                imgName = Event_Imgs,
+                                supraeventid = SupraEventID,
+                                locationName = LocationName
+                            ).__dict__)
 
-        imgsData = []
-        supraEventIDs = []
-        max_images = 0
-        #supraEventIDs_dict = dict()
-        for img in imgs:
-            supraEventIDs.append(Event.objects.get(eventid=img.eventid.eventid).supraeventid)
-        supraEventIDs = set(supraEventIDs)
-        for supraeventid in supraEventIDs:
-            imgs_cluster = Occurence.objects.filter(eventid__eventdate__range = [request.data['start'], request.data['end']]).filter(taxonid__genericname = request.data['animal']).filter(eventid__deploymentid__cameraid =  request.data['cameraid']).filter(eventid__supraeventid = supraeventid)
-            num_images = len(imgs_cluster)
-            if num_images > max_images:
-                max_images = num_images
-        header = []
-        header.append("id")
-        for i in range(max_images):
-            header.append("image"+str(i+1))
-        header.append("start")
-        header.append("end")
-        writer.writerow(header)
-        for supraeventid in supraEventIDs:
-            start = Event.objects.filter(supraeventid = supraeventid).order_by('eventdate')[0].eventdate
-            end = Event.objects.filter(supraeventid = supraeventid).order_by('-eventdate')[0].eventdate
-            imgs_cluster = Occurence.objects.filter(eventid__eventdate__range = [request.data['start'], request.data['end']]).filter(taxonid__genericname = request.data['animal']).filter(eventid__deploymentid__cameraid =  request.data['cameraid']).filter(eventid__supraeventid = supraeventid)
-            #img_cluster = imgs.objects.select_related('Event').filter(event__eventid__supraeventid = supraeventi
-            FilePaths= []            
-            for im in imgs_cluster:
-                img_filePath = (str(im.eventid.filepath).split("\\")[-1]).split("/")[-1]
-                FilePaths.append(str(img_filePath))
-            num_images = len(FilePaths)
-            FilePaths = ",".join(FilePaths) + ","*(max_images-num_images)
-            print(FilePaths)
-            #print(start,end,request.data['cameraid'],request.data['animal'],FilePaths,supraeventid)
-            imgsData.append(ImgInfo(
-                start = start,
-                end = end,
-                cameraid = request.data['cameraid'],
-                animal = request.data['animal'],
-                imgName = FilePaths,
-                supraeventid = supraeventid
-            ).__dict__)
-           # print(imgsData)
-            writer.writerow([supraeventid,FilePaths,start,end])
-        return response 
-        #return Response({'queryset': imgsData})
-        #return JsonResponse(serializers.serialize('json', imgsData), safe=False)
+                            if len(Event_Imgs) > max_images:
+                                max_images = len(Event_Imgs)
+                    
+                            LocationName = img.eventid.deploymentid.locationid.locationname
+                            SupraEventStart = img.eventid.eventdate.replace(tzinfo=utc) #start of new super event id
+                            SupraEventEnd = img.eventid.eventdate.replace(tzinfo=utc)
+                            SupraEventID+=1 #increase super event id by one
+                            Event_Imgs=[] # start a new array of images for thihs super event id
+                            Event_Imgs.append((str(img.eventid.filepath).split("\\")[-1]).split("/")[-1]) # add image to new super event id images
+            
+                        else: #this is not the beginning of this super event id
+                            SupraEventEnd = img.eventid.eventdate.replace(tzinfo=utc) #change end of super event id
+                            Event_Imgs.append((str(img.eventid.filepath).split("\\")[-1]).split("/")[-1]) #add this image to super event id
 
+            zip_subdir = "somefiles"
+            zip_filename = "%s.zip" % zip_subdir
+            s = BytesIO()
+            zf = zipfile.ZipFile(s, "w")
+            for fpath in all_filenames:
+                fdir, fname = os.path.split(fpath)
+                zip_path = os.path.join(zip_subdir, fname)
+                zf.write(fpath, zip_path)
+
+            header = []
+            header.append("#subject_id")
+            for i in range(max_images):
+                header.append("#image"+str(i+1))
+            header.append("Date")
+            header.append("From Hour")
+            header.append("To Hour")
+            header.append("Duration -")
+            header.append("Location is")
+            writer.writerow(header)
+            csvfile.write(",".join(header)+"\n")
+            for imgData in imgsData:
+                writer.writerow([imgData['supraeventid'],",".join(imgData['imgName'])+","*(max_images-len(imgData['imgName'])),imgData['start'].date(),imgData['start'],imgData['end'],imgData['end']-imgData['start'],imgData['locationName']]) 
+               # OutLine = str(
+                csvfile.write(str(imgData['supraeventid'])+","+",".join(imgData['imgName'])+","*(max_images-len(imgData['imgName']))+","+str(imgData['start'].date())+","+str(imgData['start'])+","+str(imgData['end'])+","+str(imgData['end']-imgData['start'])+","+str(imgData['locationName'])+"\n")
+            csvfile.close()
+            #zf.write('manifest.csv', zip_path)
+            fdir, fname = os.path.split('manifest.csv')
+            zip_path = os.path.join(zip_subdir, fname)
+            zf.write('manifest.csv', zip_path)
+
+            zf.close()
+            resp = HttpResponse(s.getvalue(),  content_type = "application/x-zip-compressed" )
+            resp['Content-Disposition'] = 'attachment; filename=%s' % zip_filename
+            return resp
+        return Response({'queryset': {'none':'none'}})
 class OccurenceViewSet(viewsets.ModelViewSet):
     queryset = Occurence.objects.all()
     serializer_class = OccurenceSerializer

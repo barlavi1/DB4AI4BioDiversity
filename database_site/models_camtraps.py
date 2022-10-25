@@ -52,14 +52,14 @@ class Deployments(models.Model):
     #field_id = AutoField(db_column = "_id", primary_key=True, default = 1)  # Field renamed because it started with '_'.
     deploymentid = models.AutoField(db_column = "deploymentid", primary_key=True, editable = False)
 
-    def save(self, *args, **kwargs):
-        self.longitutde=  (Location.objects.get(locationid=self.locationid.locationid)).decimallongtitude
-        self.latitude = (Location.objects.get(locationid=self.locationid.locationid)).decimallatitude
-        try:
-            self.coordinateuncertainty = Location.objects.get(locationid=self.locationid.locationid).coordinateUncertaintyInMeters
-        except:
-            self.coordinateuncertainty = 0
-        super(Deployments, self).save()
+    #def save(self, *args, **kwargs):
+        #self.longitutde=  (Location.objects.get(locationid=self.locationid.locationid)).decimallongtitude
+        #self.latitude = (Location.objects.get(locationid=self.locationid.locationid)).decimallatitude
+        #try:
+            #self.coordinateuncertainty = Location.objects.get(locationid=self.locationid.locationid).coordinateUncertaintyInMeters
+        #except:
+            #self.coordinateuncertainty = 0
+        #super(Deployments, self).save()
     
     class Meta:
         managed = False

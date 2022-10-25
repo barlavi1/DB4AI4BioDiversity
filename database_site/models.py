@@ -28,10 +28,13 @@ class PathAndRename(object):
     
     def __call__(self, instance, filename):
         Loc = instance.deploymentid.locationid.locationid
+        print(filename)
+        os.path.basename(filename)
         camera_id = instance.deploymentid.cameraid
         filename = str(instance.eventdate)+"_"+filename
         today = str(date.today())
-        filepath = os.path.join(path,camera_id,Loc,today,filename)
+        print(self.path)
+        filepath = os.path.join(self.path,camera_id,Loc,today,filename)
         return filepath
 
 path_and_rename = PathAndRename("/images")
@@ -42,9 +45,8 @@ class Event(models.Model):
     samplingprotocol = models.CharField(db_column='samplingProtocol', max_length=255)  # Field name made lowercase.
     eventdate = models.DateTimeField(db_column='eventDate', blank=True, null=True, editable = False)  # Field name made lowercase.
     eventremarks = models.CharField(db_column='eventRemarks', max_length=255, blank=True, null=True)  # Field name made lowercase.
-    supraeventid = models.IntegerField(db_column='supraEventID', blank=True, null=True, editable = False)  # Field name made lowercase.
     deploymentid= models.ForeignKey('Deployments', db_column = 'deploymentID', on_delete=models.CASCADE, editable = False)
-    filepath = models.ImageField(upload_to=path_and_rename)
+    filepath = models.ImageField(upload_to=PathAndRename("images/"))
     eventid = models.AutoField(db_column = "eventID", primary_key=True, editable = False)
     
     class Meta:
@@ -80,29 +82,12 @@ class Event(models.Model):
                 raise ValidationError("deployment is wrong " + cameraid+ "  " + str(date_object))
         except:
             raise ValidationError("deployment is wrong " + cameraid+ "  " + str(date_object))
-        mediaid =  str(timestamp)+str(self.filepath)
-        LastSupraEventID = Event.objects.all().order_by('supraeventid').last() # Get lase supraeventid
-        try:
-            LastTime = Event.objects.filter(deploymentid = deploymentid).order_by('-eventdate')[0] # previous image of this camera and location (deployment)
-        except:  # this is the first image of this camera and location
-            LastTime = timestamp - timedelta(minutes=16) #last time = this time -16m, then supraeventid will be increased by 1 (a new supraeventid will be assigned to this image
-        else:
-            LastTime = (LastTime.eventdate).replace(tzinfo=utc) # last datetime of this camera and location (deployment)
-        ThisTime = timestamp.replace(tzinfo=utc) #this datetime of this camera and location (deployment)
-        DeltaTime = (LastTime + timedelta(minutes=15)).replace(tzinfo=utc)
-        if not LastSupraEventID: # this is the first image (of all cameras and locations (deployments)
-            SupraEventID=1
-        elif DeltaTime <= ThisTime: # this is a new supraeventid
-            SupraEventID = int(LastSupraEventID.supraeventid)+1
-        else: #this is the same supraeventid
-            SupraEventID = int(LastSupraEventID.supraeventid)
         samplingprotocol = 'motion detecttion'
 
         self.samplingprotocol = samplingprotocol
         self.eventdate = timestamp
         self.eventremarks = self.eventremarks
         self.deploymentid = deploymentid
-        self.supraeventid = SupraEventID
         super(Event, self).save()
 
     class Meta:
