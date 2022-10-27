@@ -27,7 +27,10 @@ class PathAndRename(object):
         self.path = sub_path
     
     def __call__(self, instance, filename):
-        Loc = instance.deploymentid.locationid.locationid
+        if not instance.locationid:
+            Loc = instance.deploymentid.locationid.locationname
+        else:
+            Loc = instance.locationid.locationname
         print(filename)
         os.path.basename(filename)
         camera_id = instance.deploymentid.cameraid
@@ -39,13 +42,14 @@ class PathAndRename(object):
 
 path_and_rename = PathAndRename("/images")
 
-
+    
 
 class Event(models.Model):
-    samplingprotocol = models.CharField(db_column='samplingProtocol', max_length=255)  # Field name made lowercase.
+    samplingprotocol = models.CharField(db_column='samplingProtocol', max_length=255, blank = True, null = True)  # Field name made lowercase.
     eventdate = models.DateTimeField(db_column='eventDate', blank=True, null=True, editable = False)  # Field name made lowercase.
     eventremarks = models.CharField(db_column='eventRemarks', max_length=255, blank=True, null=True)  # Field name made lowercase.
     deploymentid= models.ForeignKey('Deployments', db_column = 'deploymentID', on_delete=models.CASCADE, editable = False)
+    locationid = models.ForeignKey('Location', db_column = 'locationID', on_delete=models.CASCADE, null = True, blank = True)    
     filepath = models.ImageField(upload_to=PathAndRename("images/"))
     eventid = models.AutoField(db_column = "eventID", primary_key=True, editable = False)
     
@@ -54,7 +58,6 @@ class Event(models.Model):
         db_table = 'Event'
 
     def save(self, *args, **kwargs):
-        #raise ValidationError(self.filepath.path)
         image = Image.open(self.filepath)
         exif_data = image._getexif()
         exif = {
@@ -64,35 +67,29 @@ class Event(models.Model):
         }
         cameraid = exif['BodySerialNumber']
         try:
-            date_object = datetime.strptime(exif['DateTimeOriginal'],'%Y:%m:%d %H:%M:%S' )
-            timestamp = date_object
+            timestamp = datetime.strptime(exif['DateTimeOriginal'],'%Y:%m:%d %H:%M:%S' )
         except:
             raise ValidationError("no date in exif data or datetime is in a wrong format")
-        camera_deployments = Deployments.objects.filter(cameraid = cameraid)
-        try:
-            camera_deployments = Deployments.objects.filter(cameraid = cameraid)
-            for deployment in camera_deployments:
-                start_time =  deployment.start.replace(tzinfo=utc)
-                end_time =  deployment.end.replace(tzinfo=utc)
-                curr_time = date_object.replace(tzinfo=utc)
-                if start_time <= curr_time and end_time >= curr_time:
-                    deploymentid = deployment
-                    break
-            if not deploymentid:
-                raise ValidationError("deployment is wrong " + cameraid+ "  " + str(date_object))
-        except:
-            raise ValidationError("deployment is wrong " + cameraid+ "  " + str(date_object))
+        if not self.locationid:
+            try:
+                self.deploymentid = Deployments.objects.filter(cameraid = cameraid).filter(start__lte = timestamp.replace(tzinfo=utc)).filter(end__gte = timestamp.replace(tzinfo=utc)).last() 
+            except:
+                raise ValidationError("deployment is wrong " + cameraid+ "  " + str(timestamp))
+        
         samplingprotocol = 'motion detecttion'
 
         self.samplingprotocol = samplingprotocol
         self.eventdate = timestamp
         self.eventremarks = self.eventremarks
-        self.deploymentid = deploymentid
         super(Event, self).save()
 
     class Meta:
         managed = False
         db_table = 'Event'
+
+
+
+
 
 
 

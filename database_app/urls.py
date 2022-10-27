@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from . import views
+from . import views_camtraps 
 from rest_framework import routers
 from django.conf import settings
 from django.conf.urls.static import static
@@ -42,9 +43,9 @@ router.register(r'event', views.EventViewSet)
 #router.register(r'observation', views.ObservationViewSet)
 router.register(r'occurence', views.OccurenceViewSet)
 router.register(r'location', views.LocationViewSet)
-router.register(r'PreUpload', views.PreUploadViewSet)
-router.register(r'TEST_VIEW', views.TEST_VIEW, basename='experiments')
-router.register(r'GetImages', views.GetImages, basename='experiments1')
+#router.register(r'PreUpload', views.PreUploadViewSet)
+router.register(r'Media', views_camtraps.Media_VIEW, basename='experiments')
+router.register(r'Zooniverse', views_camtraps.Zooniverse, basename='experiments1')
 
 
 
