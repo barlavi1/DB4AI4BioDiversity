@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     'rest_framework_simplejwt',
+    'django.contrib.gis',
     'rest_framework.authtoken'
 
 ]
@@ -91,7 +92,8 @@ WSGI_APPLICATION = 'database_app.wsgi.application'
 
 DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
+            #'ENGINE': 'django.db.backends.mysql',
+            'ENGINE': 'django.contrib.gis.db.backends.mysql',
             'NAME': 'BioDiveresityDB',
             'USER': 'BioDiversity',
             'PASSWORD': 'Bb2022Bb!',

@@ -12,12 +12,16 @@ import PIL.ExifTags
 from exiffield.fields import ExifField
 #from exif import Image
 #from exiffield.getters import exifgetter
-
+from django.contrib.gis.geos import Point, Polygon
 from exiffield.getters import exifgetter
 
 
 import pytz
 utc=pytz.UTC
+
+
+class MultipleImage(models.Model):
+    images = models.FileField()
 
 
 

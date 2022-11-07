@@ -129,6 +129,13 @@ class PreUploadSerializer(serializers.HyperlinkedModelSerializer):
 
 
 
+class ContinentSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Continent
+        fields = '__all__'
+
+
+
 """
 class FetchImagesSerializer(serializers.ModelSerializer):
     res = django_filters.CharFilter(field_name='cameraid')

@@ -22,4 +22,8 @@ admin.site.register(Occurence)
 admin.site.register(Behavior)
 admin.site.register(Grades)
 admin.site.register(PreUpload)
+admin.site.register(Continent)
+admin.site.register(Country)
+admin.site.register(County)
+admin.site.register(Region)
 

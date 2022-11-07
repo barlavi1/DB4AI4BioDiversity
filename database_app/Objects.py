@@ -25,3 +25,12 @@ class ImgInfo:
         self.locationName = locationName
 
 
+
+
+class AddImage:
+    def __init__(self,image):
+        self.filepath = image
+
+
+
+

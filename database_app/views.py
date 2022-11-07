@@ -83,8 +83,9 @@ class BehaviorViewSet(viewsets.ModelViewSet):
 class GradesViewSet(viewsets.ModelViewSet):
     queryset = Grades.objects.all().order_by('grade')
     serializer_class = GradesSerializer
-    serializer_class = PreUploadSerializer
 
-
+class ContinentViewSet(viewsets.ModelViewSet):
+    queryset = Continent.objects.all()
+    serializer_class = ContinentSerializer
 
 

@@ -46,8 +46,9 @@ router.register(r'location', views.LocationViewSet)
 #router.register(r'PreUpload', views.PreUploadViewSet)
 router.register(r'Media', views_camtraps.Media_VIEW, basename='experiments')
 router.register(r'Zooniverse', views_camtraps.Zooniverse, basename='experiments1')
-
-
+#router.register(r'MultipleImage', views_camtraps.MultipleImage_VIEW, basename='experiments2')
+router.register(r'Zooniverse', views_camtraps.Zooniverse, basename='experiments1')
+router.register(r'continent', views.ContinentViewSet)
 
 #router.register(r'FilterByChoice', views.GetImg)
 
