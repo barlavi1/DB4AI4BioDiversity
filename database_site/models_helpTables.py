@@ -124,9 +124,9 @@ class Location(models.Model):
     decimallatitude = models.DecimalField(db_column='decimalLatitude',max_digits = 10, decimal_places = 8, validators=[MinValueValidator(-90.00000000), MaxValueValidator(90.00000000)], blank=True, null=True)  # Field name made lowercase.
     decimallongtitude = models.DecimalField(db_column='decimalLongtitude',max_digits = 11, decimal_places = 8,validators=[MinValueValidator(-180.00000000), MaxValueValidator(180.00000000)],  blank=True, null=True)  # Field name made lowercase.
     coordinateuncertaintyinmeters = models.IntegerField(db_column='coordinateUncertaintyInMeters', blank=True, null=True)  # Field name made lowercase.
-    continent = models.CharField(max_length=255, blank=True, null=True)
-    country = models.CharField(max_length=255, blank=True, null=True)
-    county = models.CharField(max_length=255, blank=True, null=True)
+    continent = models.CharField(max_length=255, blank=True, null=True, db_column='continent')
+    country = models.ForeignKey(Country, on_delete=models.CASCADE, db_column = 'country')
+    county = models.ForeignKey(County,  on_delete=models.CASCADE, db_column = 'county')     #max_length=255, blank=True, null=True)
     locationname = models.CharField(max_length=255, blank=True, null=True, db_column='locationName')
 
     class Meta:

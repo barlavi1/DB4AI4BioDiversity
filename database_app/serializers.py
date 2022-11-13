@@ -21,7 +21,7 @@ class LocationSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Location
         #fields = '__all__'
-        fields = ('locationid','locationname','decimallatitude','decimallongtitude','coordinateuncertaintyinmeters','continen','country','county')
+        fields = ('locationid','locationname','decimallatitude','decimallongtitude','coordinateuncertaintyinmeters','continent','country','county')
 
 class BehaviorSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
