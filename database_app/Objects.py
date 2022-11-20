@@ -32,9 +32,12 @@ class AddImage:
         self.filepath = image
 
 
+
 class PolyInfo:
     def __init__(self, eventid, animal, deploymentid, point):
         self.eventid = eventid
         self.animal =  animal
         self.deploymentid = deploymentid
         self.point = point
+
+

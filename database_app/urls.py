@@ -19,6 +19,7 @@ from django.urls import path, include
 from . import views
 from . import views_camtraps 
 from . import views_polygon
+from . import view_test 
 from rest_framework import routers
 from django.conf import settings
 from django.conf.urls.static import static
@@ -51,19 +52,24 @@ router.register(r'Media', views_camtraps.Media_VIEW, basename='experiments')
 router.register(r'Zooniverse', views_camtraps.Zooniverse, basename='experiments1')
 #router.register(r'continent', views.ContinentViewSet)
 router.register(r'QueryByPolygon', views_polygon.QueryByPolygon, basename='home123')
+
 #router.register('current_datetime<int:num>/', views_test.current_datetime, basename='experiments3')
 #router.register(r'FilterByChoice', views.GetImg)
 #router.register(Result_dashboard.html
+
+path('auth/', include('auth.urls')),
+
+
 urlpatterns = [
         path('', include(router.urls)),
         #path('',views_polygon.QueryByPolygon.as_view(), name="home"),
         path('admin/', admin.site.urls),
         #path('api-auth/', include('rest_framework.urls',namespace='rest_framework')
-        path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-        path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-        path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-        path('current_datetime/', views_test.current_datetime),
-        path('current_datetime/current_datetime<int:num>', views_test.current_datetime)
+        #path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+        #path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+        #path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+        path('auth/', include('auth.urls')),
+
         #path('QueryByPolygon/<
         #path('Result_dashboard/', views_polygon.QueryByPolygon.as_view(), name = 'Resultdashboard'), 
 #        path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

@@ -5,6 +5,7 @@ from django.db.models.signals import post_save
 from datetime import datetime, timedelta
 from django.core.validators import MinValueValidator,MaxValueValidator
 from django.contrib.gis.db import models as Geomodels
+from django.contrib.gis.geos import Polygon, Point
 
 def Behavior_Increment_field_id():
     last = Behavior.objects.all().order_by('behaviorid').last()
@@ -40,6 +41,9 @@ def Tasks_Increment_field_id():
 
 
 class Sex(models.Model):
+    """
+    table for sex
+    """
     sexid = models.IntegerField(db_column='sexID', primary_key=True, default = Sex_Increment_field_id)  # Field name made lowercase.
     sextype = models.CharField(db_column='sexType', max_length=255, blank=True, null=True)  # Field name made lowercase.
 
@@ -48,6 +52,9 @@ class Sex(models.Model):
         db_table = 'Sex'
 
 class Ai(models.Model):
+    """
+    table for machine annotators
+    """
     aiid = models.IntegerField(db_column='aiID', primary_key=True)  # Field name made lowercase.
     aiversion = models.CharField(db_column='aiVersion', max_length=255, blank=True, null=True)  # Field name made lowercase.
     animal_threshold = models.FloatField(db_column='Animal_Threshold', blank=True, null=True)  # Field name made lowercase.
@@ -58,6 +65,9 @@ class Ai(models.Model):
         db_table = 'AI'
 
 class Taxon(models.Model):
+    """
+    table for different taxons
+    """
     taxonid = models.IntegerField(db_column='taxonID', primary_key=True, editable = True, blank = False, null = False)  # Field name made lowercase.
     scientificname = models.CharField(db_column='scientificName', max_length=255, blank=True, null=True)  # Field name made lowercase.
     genericname = models.CharField(db_column='genericName', max_length=255, blank=True, null=True)  # Field name made lowercase.
@@ -66,6 +76,9 @@ class Taxon(models.Model):
         db_table = 'Taxon'
 
 class Annotators(models.Model):
+    """
+    table for different annotators 
+    """
     annotatorid = models.IntegerField(db_column='annotatorID', primary_key=True)  # Field name made lowercase.
     annotatorname = models.CharField(db_column='annotatorName', max_length=255, blank=True, null=True)  # Field name made lowercase.
     assumedexpertiselevel = models.FloatField(db_column='assumedExpertiseLevel', blank=True, null=True)  # Field name made lowercase.
@@ -81,6 +94,9 @@ class Annotators(models.Model):
 
 
 class Behavior(models.Model):
+    """
+    behavior of occurence
+    """
     behaviorid = models.IntegerField(db_column='behaviorID', default = Behavior_Increment_field_id, primary_key=True)  # Field name made lowercase.
     behaviortype = models.CharField(db_column='behaviorType', max_length=255, blank=True, null=True)  # Field name made lowercase.
 
@@ -89,6 +105,9 @@ class Behavior(models.Model):
         db_table = 'Behavior'
 
 class Lifestage(models.Model):
+    """
+    life stage of occurence
+    """
     lifestageid = models.IntegerField(db_column='lifeStageID', default = Lifestage_Increment_field_id, primary_key=True)  # Field name made lowercase.
     lifestagetype = models.CharField(db_column='lifeStageType', max_length=255, blank=True, null=True)  # Field name made lowercase.
 
@@ -98,42 +117,54 @@ class Lifestage(models.Model):
 
 
 
-class Continent(models.Model):
-    continentname = models.CharField(db_column="continentName", max_length=255, blank=True, null=True)
-    continent = Geomodels.MultiPolygonField(db_column="continent",srid=4326)
+#class Continent(models.Model):
+#    continentname = models.CharField(db_column="continentName", max_length=255, blank=True, null=True)
+#    continent = Geomodels.MultiPolygonField(db_column="continent",srid=4326)
 
-class Country(models.Model):
-    countryname = models.CharField(db_column="countryName", max_length=255, blank=True, null=True)
-    country =  Geomodels.PolygonField(db_column="country")
+#class Country(models.Model):
+#    countryname = models.CharField(db_column="countryName", max_length=255, blank=True, null=True)
+#    country =  Geomodels.PolygonField(db_column="country")
     #continent = models.ForeignKey(Continent, db_column = 'continent', on_delete=models.CASCADE, default=None)
 
-class County(models.Model):
-    countyname = models.CharField(db_column="countyName",max_length=255, blank=True, null=True)
-    county =  Geomodels.PolygonField(db_column="county")
-    country = models.ForeignKey(Country, db_column = 'country', on_delete=models.CASCADE, default=None) 
+#class County(models.Model):
+#    countyname = models.CharField(db_column="countyName",max_length=255, blank=True, null=True)
+#    county =  Geomodels.PolygonField(db_column="county")
+#    country = models.ForeignKey(Country, db_column = 'country', on_delete=models.CASCADE, default=None) 
 
-class Region(models.Model):
-    regionname = models.CharField(db_column="regionName",max_length=255, blank=True, null=True)
-    region = Geomodels.PolygonField(db_column="region")
-    county = models.ForeignKey(County, db_column = 'county',on_delete=models.CASCADE, default=None)
+#class Region(models.Model):
+#    regionname = models.CharField(db_column="regionName",max_length=255, blank=True, null=True)
+#    region = Geomodels.PolygonField(db_column="region")
+#    county = models.ForeignKey(County, db_column = 'county',on_delete=models.CASCADE, default=None)
 
 class Location(models.Model):
-    locationid = models.CharField(db_column='locationID', max_length=255, null = False, blank = False, primary_key = True)  # Field name made lowercase.
-    #decimallatitude = models.FloatField(db_column='decimalLatitude', validators=[MinValueValidator(-90.00000000), MaxValueValidator(90.00000000)], blank=True, null=True)  # Field name made lowercase.
-    #decimallongtitude = models.FloatField(db_column='decimalLongtitude',validators=[MinValueValidator(-180.00000000), MaxValueValidator(180.00000000)],  blank=True, null=True)  # Field name made lowercase.
+    """
+    table for location of deployments
+    """
+    locationid = models.AutoField(db_column='locationID', primary_key = True)  # Field name made lowercase.
     decimallatitude = models.DecimalField(db_column='decimalLatitude',max_digits = 10, decimal_places = 8, validators=[MinValueValidator(-90.00000000), MaxValueValidator(90.00000000)], blank=True, null=True)  # Field name made lowercase.
     decimallongtitude = models.DecimalField(db_column='decimalLongtitude',max_digits = 11, decimal_places = 8,validators=[MinValueValidator(-180.00000000), MaxValueValidator(180.00000000)],  blank=True, null=True)  # Field name made lowercase.
     coordinateuncertaintyinmeters = models.IntegerField(db_column='coordinateUncertaintyInMeters', blank=True, null=True)  # Field name made lowercase.
+    #continent = models.CharField(max_length=255, blank=True, null=True, db_column='continent')
+    #country = models.ForeignKey(Country, on_delete=models.CASCADE, db_column = 'country')
+    #county = models.ForeignKey(County,  on_delete=models.CASCADE, db_column = 'county')     #max_length=255, blank=True, null=True)
     continent = models.CharField(max_length=255, blank=True, null=True, db_column='continent')
-    country = models.ForeignKey(Country, on_delete=models.CASCADE, db_column = 'country')
-    county = models.ForeignKey(County,  on_delete=models.CASCADE, db_column = 'county')     #max_length=255, blank=True, null=True)
-    locationname = models.CharField(max_length=255, blank=True, null=True, db_column='locationName')
+    country = models.CharField(max_length=255, blank=True, null=True, db_column = 'country')
+    county = models.CharField(max_length=255, blank=True, null=True, db_column = 'county')     #max_length=255, blank=True, null=True)
+    locationname = models.CharField(max_length=255, blank=False, null=False, db_column='locationName')
+    location_coords =  Geomodels.PointField(db_column = "location", editable = False)
+
+    def save(self, *args, **kwargs):
+        self.location_coords=Point(float(self.decimallongtitude) , float(self.decimallatitude))
+        super(Location, self).save()
 
     class Meta:
         managed = False
         db_table = 'Location'
 
 class Tasks(models.Model):
+    """
+    table for different annotation types (species, count, sex etc.)
+    """
     taskid = models.IntegerField(db_column='taskID', primary_key=True, default = Tasks_Increment_field_id)  # Field name made lowercase.
     taskname = models.CharField(db_column='taskName', max_length=255, blank=True, null=True)  # Field name made lowercase.
     taskdescription = models.CharField(db_column='taskDescription', max_length=255, blank=True, null=True)  # Field name made lowercase.
@@ -141,14 +172,6 @@ class Tasks(models.Model):
     class Meta:
         managed = False
         db_table = 'Tasks'
-
-class PreUpload(models.Model):
-    img = models.ImageField(db_column = 'img',upload_to='RAW/')
-    field_id =  models.AutoField(db_column = "_id", primary_key=True, editable = False)
-
-    class Meta:
-        managed = False
-        db_table = 'PreUpload'
 
 
 

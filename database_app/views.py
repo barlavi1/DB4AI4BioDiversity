@@ -32,8 +32,8 @@ utc=pytz.UTC
 
 #class LocationViewSet(viewsets.ModelViewSet):
     #permission_classes = (IsAuthenticated,)
-#    queryset = Location.objects.all().order_by('locationid')
-#    serializer_class = LocationSerializer
+    #queryset = Location.objects.all().order_by('locationid')
+    #serializer_class = LocationSerializer
         
 #class LifestageViewSet(viewsets.ModelViewSet):
 #    queryset = Lifestage.objects.all().order_by('lifestageid')

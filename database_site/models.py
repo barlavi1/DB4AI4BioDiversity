@@ -19,10 +19,13 @@ utc=pytz.UTC
 from django.utils.deconstruct import deconstructible
 from PIL import Image
 import PIL.ExifTags
-
+from .functions import *
 
 @deconstructible
 class PathAndRename(object):
+    """
+    save new image in correct path
+    """
     def __init__(self, sub_path):
         self.path = sub_path
     
@@ -45,11 +48,14 @@ path_and_rename = PathAndRename("/images")
     
 
 class Event(models.Model):
+    """
+    table for events 
+    """
     samplingprotocol = models.CharField(db_column='samplingProtocol', max_length=255, blank = True, null = True)  # Field name made lowercase.
     eventdate = models.DateTimeField(db_column='eventDate', blank=True, null=True, editable = False)  # Field name made lowercase.
     eventremarks = models.CharField(db_column='eventRemarks', max_length=255, blank=True, null=True)  # Field name made lowercase.
     deploymentid= models.ForeignKey('Deployments', db_column = 'deploymentID', on_delete=models.CASCADE, editable = False)
-    locationid = models.ForeignKey('Location', db_column = 'locationID', on_delete=models.CASCADE, null = True, blank = True)    
+    locationid = models.ForeignKey('Location', db_column = 'locationID', on_delete=models.CASCADE, editable = False)    
     filepath = models.ImageField(upload_to=PathAndRename("images/"))
     eventid = models.AutoField(db_column = "eventID", primary_key=True, editable = False)
     
@@ -58,26 +64,31 @@ class Event(models.Model):
         db_table = 'Event'
 
     def save(self, *args, **kwargs):
-        image = Image.open(self.filepath)
-        exif_data = image._getexif()
-        exif = {
-            PIL.ExifTags.TAGS[k]: v
-                for k, v in image._getexif().items()
-                    if k in PIL.ExifTags.TAGS
-        }
+        #image = Image.open(self.filepath)
+        #exif_data = image._getexif()
+        #exif = {
+            #PIL.ExifTags.TAGS[k]: v
+                #for k, v in image._getexif().items()
+                    #if k in PIL.ExifTags.TAGS
+        #}
+        exif = GetImageExif(self.filepath)
         cameraid = exif['BodySerialNumber']
+        print("######################################################################################" + cameraid)
         try:
             timestamp = datetime.strptime(exif['DateTimeOriginal'],'%Y:%m:%d %H:%M:%S' )
         except:
             raise ValidationError("no date in exif data or datetime is in a wrong format")
-        if not self.locationid:
+        #if not self.locationid:
+        if 1==1:
             try:
                 self.deploymentid = Deployments.objects.filter(cameraid = cameraid).filter(start__lte = timestamp.replace(tzinfo=utc)).filter(end__gte = timestamp.replace(tzinfo=utc)).last() 
             except:
-                raise ValidationError("deployment is wrong " + cameraid+ "  " + str(timestamp))
-        
-        samplingprotocol = 'motion detecttion'
+                raise ValidationError("deployment is wrong " + cameraid+ "  " + str(timestamp))        
+        print(self.deploymentid.locationid)
+        self.locationid =  Deployments.objects.filter(cameraid = cameraid).filter(start__lte = timestamp.replace(tzinfo=utc)).filter(end__gte = timestamp.replace(tzinfo=utc)).last().locationid
 
+        samplingprotocol = 'motion detecttion'
+        print(self.deploymentid.deploymentid)
         self.samplingprotocol = samplingprotocol
         self.eventdate = timestamp
         self.eventremarks = self.eventremarks
@@ -95,6 +106,9 @@ class Event(models.Model):
 
 
 class Occurence(models.Model):
+    """
+    Ocuurences within an event
+    """
     eventid = models.ForeignKey('Event', on_delete = models.CASCADE, db_column='eventID')  # Field name made lowercase.
     taxonid = models.ForeignKey('Taxon', db_column='taxonID', on_delete=models.CASCADE)  # Field name made lowercase.
     individualcount = models.IntegerField(db_column='individualCount')  # Field name made lowercase.
@@ -115,6 +129,9 @@ class Occurence(models.Model):
 
 
 class Grades(models.Model):
+    """
+    grades for annotators 
+    """
     annotatorid = models.ForeignKey(Annotators, on_delete = models.CASCADE, db_column='annotatorid')  # Field name made lowercase.
     taskid = models.ForeignKey('Tasks', on_delete = models.CASCADE, db_column='taskid')  # Field name made lowercase.
     eventid = models.ForeignKey('Occurence', on_delete = models.CASCADE, db_column='eventID', related_name='Occurence_eventid')  # Field name made lowercase.
@@ -132,6 +149,9 @@ class Grades(models.Model):
 
 @receiver(pre_save, sender = Event)
 def VerifyChronologicalUploading(sender, instance, **kwarg):
+    """
+    makes sure new event was not taken earlier than the events in the db
+    """
     try:
         LastUploadTime = sender.objects.filter(deploymentid = instance.deploymentid).order_by('eventdate').last()
     except:

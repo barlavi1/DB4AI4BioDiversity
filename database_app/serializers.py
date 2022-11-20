@@ -18,10 +18,15 @@ class AiSerializer(serializers.HyperlinkedModelSerializer):
         fields = '__all__'
 
 class LocationSerializer(serializers.HyperlinkedModelSerializer):
+    #point_field = serializers.SerializerMethodField('InitPoint')
+
+    #def InitPoint(self, instance):
+        #return(Point(float(instance.decimallongtitude), float(instance.decimallatitude)))
+
     class Meta:
         model = Location
         #fields = '__all__'
-        fields = ('locationid','locationname','decimallatitude','decimallongtitude','coordinateuncertaintyinmeters','continent','country','county')
+        fields = ('locationid','locationname','decimallatitude','decimallongtitude','coordinateuncertaintyinmeters','location_coords')#'continent','country','county', 'point_field')
 
 class BehaviorSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
@@ -101,6 +106,8 @@ class EventSerializer(serializers.ModelSerializer):
         #fields = ('medialink','mediaid','eventremarks','eventdate','samplingprotocol', 'locationid','supraeventid')
 
 
+
+
 #class MediaSerializer(serializers.HyperlinkedModelSerializer):
 #    class Meta:
 #        model = Media
@@ -122,17 +129,10 @@ class OccurenceSerializer(serializers.HyperlinkedModelSerializer):
         #fields = ('occurenceid','eventid', 'taxonid','individualcount','sexid','lifestageid','behaviorid')
 
 
-class PreUploadSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = PreUpload
-        fields = '__all__'
-
-
-
-class ContinentSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = Continent
-        fields = '__all__'
+#class ContinentSerializer(serializers.HyperlinkedModelSerializer):
+#    class Meta:
+#        model = Continent
+#        fields = '__all__'
 
 
 

@@ -5,7 +5,7 @@ from django.db.models.signals import post_save, pre_save
 from datetime import datetime, timedelta
 from django.core.validators import MinValueValidator,MaxValueValidator
 from django.core.exceptions import ValidationError
-from .models_helpTables import Location, PreUpload
+from .models_helpTables import Location
 import os
 from PIL import Image
 import PIL.ExifTags
@@ -20,8 +20,8 @@ import pytz
 utc=pytz.UTC
 
 
-class MultipleImage(models.Model):
-    images = models.FileField()
+#class MultipleImage(models.Model):
+#    images = models.FileField()
 
 
 
@@ -30,7 +30,7 @@ class MultipleImage(models.Model):
 class Deployments(models.Model):
     BaitChoices = (('none','none'),('scent','scent'),('food','food'),('visual','visual'),('acoustic','acoustic'),('other','other'),)
     FeatureTypeChoices = (('none','none'),('road paved','road paved'),('road dirt','road dirt'),('trail hiking','trail hiking'),('trail game','trail game'),('road underpass','road underpass'),('road bridge','road bridge'),('culvert','culvert'),('burrow','burrow'),('nest site','nest site'),('carcass','carcass'),('water source','water source'),('fruiting tree','fruiting tree'),('other','other'),)
-    locationid = models.ForeignKey('Location', on_delete=models.CASCADE, db_column='locationID', blank=True, null=True)  # Field name made lowercase.
+    locationid = models.ForeignKey('Location', on_delete=models.CASCADE, db_column='locationID')  # Field name made lowercase.
     #locationname = models.CharField(db_column='locationName', max_length=255, blank=True, null=True)  # Field name made lowercase.
     #longitutde = models.DecimalField(db_column='longitutde', max_digits = 11, decimal_places = 8, editable = False)
     #latitude = models.DecimalField(db_column='latitude', max_digits = 10, decimal_places = 8, editable = False)
