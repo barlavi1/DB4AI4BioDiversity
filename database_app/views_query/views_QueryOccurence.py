@@ -32,33 +32,55 @@ def CalcSupraEventID(events_dict,time_interval):
     time_interval = timedelta(minutes=time_interval)
     for res_event in res:
         res_datetime = res_event[1]['timestamp']
-        #res_datetime = datetime.strptime(res_event[1]['timestamp'].split("+")[0], "%Y-%m-%d %H:%M:%S")
         if last_end == 0 or res_datetime - last_end > time_interval:
             supraeventid+=1
             NumImagesDict[supraeventid] = {}
             NumImagesDict[supraeventid]['events'] = list()
             NumImagesDict[supraeventid]['num'] = 0
-        
-        NumImagesDict[supraeventid]['events'].append(res_event[1])
+            NumImagesDict[supraeventid]['start'] = res_event[1]['timestamp']
+            NumImagesDict[supraeventid]['end'] = res_event[1]['timestamp']
+            NumImagesDict[supraeventid]['location'] = res_event[1]['location']
+            NumImagesDict[supraeventid]['camera'] = res_event[1]['cameraid']
+
+        NumImagesDict[supraeventid]['events'].append(res_event[1]['filepath'])
         NumImagesDict[supraeventid]['num']+=1
-        supraeventDict[res_event[1]['eventid']] = dict()
-        supraeventDict[res_event[1]['eventid']]['eventid'] = res_event[1]['eventid']
-        supraeventDict[res_event[1]['eventid']]['filepath'] = res_event[1]['filepath']
-        supraeventDict[res_event[1]['eventid']]['cameraid'] = res_event[1]['cameraid']
-        supraeventDict[res_event[1]['eventid']]['animal'] = res_event[1]['animal']
-        supraeventDict[res_event[1]['eventid']]['timestamp'] = res_event[1]['timestamp']
-        supraeventDict[res_event[1]['eventid']]['occurenceid'] = res_event[1]['occurenceid']
-        supraeventDict[res_event[1]['eventid']]['supraeventid'] = supraeventid
+        NumImagesDict[supraeventid]['end'] = res_event[1]['timestamp']
         last_end = res_datetime
-    return supraeventDict, NumImagesDict)
+    return NumImagesDict
 
 
-def GenerateManifest(supraeventDict):
-    maxEvents = max(int(NumImagesDict[inner]['num']) for inner in NumImagesDict)
+def GenerateManifest(res,mime_type = "image/jpeg"):
+    maxEvents = max(int(res[inner]['num']) for inner in res)
+    csv_headers = ["#subject_id","#mime_Type","mimeCount"]+["#image"+str(i+1) for i in range(maxEvents)] + ["Date","Start","End","Duration","Location","Camera"]
+    print(csv_headers)
+    buffer = io.StringIO()
+    wr = csv.writer(buffer)
+    wr.writerow(csv_headers)
+    for supraEvent in res:
+        SupraEvents = res[supraEvent]
+        start = res[supraEvent]['start']
+        date = start.date()
+        end = res[supraEvent]['end']
+        filepaths = res[supraEvent]['events']
+        [filepaths.append("") for i in range(maxEvents-len(res[supraEvent]['events']))]
+        print(filepaths)
+
+        duration = end - start
+        location = res[supraEvent]['location']
+        camera = res[supraEvent]['camera']
+        count = res[supraEvent]['num']
+        outline = [supraEvent,mime_type,count]+filepaths+[date,start,end,duration,location,camera]
+        wr.writerow(outline)
+    buffer.seek(0)
+    wr = csv.writer(buffer)
+    response = HttpResponse(buffer, content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="zooniverse_response.csv"'
+    return (response)
+        
 
 
 
-def FilterData(requst_data):#start=None,end=None,animal=None,cameraid=None):
+def FilterData(requst_data):
     """
     calculate supra event id for each picture in data
     Note - request_data = request.data: should have a legit cameraid, animal (generic name) and range date (start, end) in iso format.
@@ -66,22 +88,18 @@ def FilterData(requst_data):#start=None,end=None,animal=None,cameraid=None):
     """
 
     ImgsQueryset = database_site.models.Image.objects.filter(cameraid = requst_data['cameraid']).select_related('eventid').filter(eventid__eventdate__range=[requst_data['start'],requst_data['end']])
-    OccQueryset = Occurence.objects.filter(taxonid__genericname = requst_data['animal']).select_related('eventid')
-    #filter(eventid__in=[list of occurences ids])
+    OccQueryset = Occurence.objects.filter(taxonid__genericname = requst_data['animal']).select_related('eventid').filter(eventid__in = ImgsQueryset.values_list('eventid', flat=True))
     toReturn = {}
-    for o in ImgsQueryset:
-        queryset = OccQueryset.filter(eventid = o.eventid).last()
-        #querysets = OccQueryset.filter(eventid = o.eventid)
-        #for queryset in querysets:
-        if queryset:
+    for queryset in OccQueryset:
+        if 1 == 1:
             toReturn[queryset.eventid.eventid]=dict()
             toReturn[queryset.eventid.eventid]['eventid'] = queryset.eventid.eventid
-            toReturn[queryset.eventid.eventid]['filepath'] = database_site.models.Image.objects.get(eventid=queryset.eventid).filepath.path
+            toReturn[queryset.eventid.eventid]['filepath'] = database_site.models.Image.objects.get(eventid=queryset.eventid).filepath.url
             toReturn[queryset.eventid.eventid]['cameraid'] = database_site.models.Image.objects.get(eventid=queryset.eventid).cameraid
             toReturn[queryset.eventid.eventid]['animal'] = queryset.taxonid.genericname
             toReturn[queryset.eventid.eventid]['timestamp'] = queryset.eventid.eventdate
             toReturn[queryset.eventid.eventid]['occurenceid'] = queryset.occurenceid
-    #res = pd.DataFrame(toReturn).T
+            toReturn[queryset.eventid.eventid]['location'] = queryset.eventid.locationid.locationname
     return toReturn
 
 
@@ -92,21 +110,8 @@ class Zooniverse(viewsets.ViewSet):
     """
     def list(self, request):
         res = FilterData(request.data)
-        supraEventDict, maxEventsInSupraEvent = CalcSupraEventID(res, request.data['interval'])
-        print(supraEventDict)
-        res = supraEventDict
-        buffer = io.StringIO()
-        wr = csv.writer(buffer)
-
-        csv_headers = list(res[list(res.keys())[0]].keys())
-        wr.writerow(csv_headers)
-        for eventid in res:
-            #cur_row = res[eventid]
-            #outrow = res[eventid].values()
-            wr.writerow(res[eventid].values())
-        buffer.seek(0)
-        response = HttpResponse(buffer, content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="query_response.csv"'
+        EventsInSupraEvent = CalcSupraEventID(res, request.data['interval'])
+        response = GenerateManifest(EventsInSupraEvent)
         return response
 
 
