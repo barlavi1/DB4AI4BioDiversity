@@ -25,9 +25,37 @@ def Event4SupraEvent(img):
         return img.eventid.eventid
     return img.eventid
 
-def GroupBySupraEventID(df,time_interval):
-    df['timestamp'] = df['timestamp'].str.split("+").str[0]
-    df['interval'] = df["timestamp"].diff().apply(lambda x: x/np.timedelta64(1, 'm')).fillna(0).astype('int64')
+def CalcSupraEventID(events_dict,time_interval):
+
+    res = sorted(events_dict.items(), key = lambda x: x[1]['timestamp'])
+    supraeventid, last_end, supraeventDict, NumImagesDict = 0,0,{}, {}
+    time_interval = timedelta(minutes=time_interval)
+    for res_event in res:
+        res_datetime = res_event[1]['timestamp']
+        #res_datetime = datetime.strptime(res_event[1]['timestamp'].split("+")[0], "%Y-%m-%d %H:%M:%S")
+        if last_end == 0 or res_datetime - last_end > time_interval:
+            supraeventid+=1
+            NumImagesDict[supraeventid] = {}
+            NumImagesDict[supraeventid]['events'] = list()
+            NumImagesDict[supraeventid]['num'] = 0
+        
+        NumImagesDict[supraeventid]['events'].append(res_event[1])
+        NumImagesDict[supraeventid]['num']+=1
+        supraeventDict[res_event[1]['eventid']] = dict()
+        supraeventDict[res_event[1]['eventid']]['eventid'] = res_event[1]['eventid']
+        supraeventDict[res_event[1]['eventid']]['filepath'] = res_event[1]['filepath']
+        supraeventDict[res_event[1]['eventid']]['cameraid'] = res_event[1]['cameraid']
+        supraeventDict[res_event[1]['eventid']]['animal'] = res_event[1]['animal']
+        supraeventDict[res_event[1]['eventid']]['timestamp'] = res_event[1]['timestamp']
+        supraeventDict[res_event[1]['eventid']]['occurenceid'] = res_event[1]['occurenceid']
+        supraeventDict[res_event[1]['eventid']]['supraeventid'] = supraeventid
+        last_end = res_datetime
+    return supraeventDict, NumImagesDict)
+
+
+def GenerateManifest(supraeventDict):
+    maxEvents = max(int(NumImagesDict[inner]['num']) for inner in NumImagesDict)
+
 
 
 def FilterData(requst_data):#start=None,end=None,animal=None,cameraid=None):
@@ -42,17 +70,17 @@ def FilterData(requst_data):#start=None,end=None,animal=None,cameraid=None):
     #filter(eventid__in=[list of occurences ids])
     toReturn = {}
     for o in ImgsQueryset:
-        #queryset = OccQueryset.filter(eventid = o.eventid).last()
-        querysets = OccQueryset.filter(eventid = o.eventid)
-        for queryset in querysets:
-        #if queryset:
+        queryset = OccQueryset.filter(eventid = o.eventid).last()
+        #querysets = OccQueryset.filter(eventid = o.eventid)
+        #for queryset in querysets:
+        if queryset:
             toReturn[queryset.eventid.eventid]=dict()
+            toReturn[queryset.eventid.eventid]['eventid'] = queryset.eventid.eventid
             toReturn[queryset.eventid.eventid]['filepath'] = database_site.models.Image.objects.get(eventid=queryset.eventid).filepath.path
             toReturn[queryset.eventid.eventid]['cameraid'] = database_site.models.Image.objects.get(eventid=queryset.eventid).cameraid
             toReturn[queryset.eventid.eventid]['animal'] = queryset.taxonid.genericname
             toReturn[queryset.eventid.eventid]['timestamp'] = queryset.eventid.eventdate
             toReturn[queryset.eventid.eventid]['occurenceid'] = queryset.occurenceid
-
     #res = pd.DataFrame(toReturn).T
     return toReturn
 
@@ -64,7 +92,9 @@ class Zooniverse(viewsets.ViewSet):
     """
     def list(self, request):
         res = FilterData(request.data)
-       
+        supraEventDict, maxEventsInSupraEvent = CalcSupraEventID(res, request.data['interval'])
+        print(supraEventDict)
+        res = supraEventDict
         buffer = io.StringIO()
         wr = csv.writer(buffer)
 
