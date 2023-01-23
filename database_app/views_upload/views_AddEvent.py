@@ -7,6 +7,7 @@ import sys
 import pytz
 utc=pytz.UTC
 from rest_framework.response import Response
+from ..serializers import *
 
 def SaveNewEvent(data):
     newEvent = Event(samplingprotocol = data['samplingProtocol'], eventdate = data['eventDate'], eventremarks = data['eventRemarks'], locationid = data['locationid'])
@@ -37,7 +38,6 @@ def FindDeployment(data):
     return Deploy.locationid.locationid
 
 def GetOccurenceData(data):
-    print(data)
 
     if not 'count' in data or data['count'] == 0:
         return None
@@ -48,13 +48,7 @@ def GetOccurenceData(data):
     lifestage = data['lifestage'] if 'lifestage' in data else "unknown"
     sex = data['sex'] if 'sex' in data else "unknown"
     i=0
-    if 1 == 1:
-    #for c in counts:
-        #taxon = taxons[i] if len(taxons) > i and len(taxons[i])>0 else "unknown"
-        #behavior = behaviors[i] if len(behaviors) > i and len(behaviors[i])>0 else "unknown"
-        #lifestage = lifestages[i] if len(lifestages) > i and len(lifestages[i])>0 else "unknown"
-        #sex = sexs[i] if len(sexs) > i and len(sexs[i])>0 else "unknown"
-        
+    if 1 == 1: 
         try:
             taxonid = Taxon.objects.get(genericname = taxon)
         except:
@@ -114,33 +108,36 @@ class AddNewImageWithExif(viewsets.ViewSet):
         #print(returnData)
         #except:
             #print ("no")
+        #def update(self,request):
+
 
 class AddNewOccurence(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = OccurenceSerializer
     def create(self,request):
         Event_obj = Events.objects.get(eventid = data['eventid'])
         if len(Event_obj) == 0:
             raise ValidationError("no such event")
         occureunceid = GetOccurenceData(request.data)
 
-class AddNewImageWithDate(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated]
-    def create(self, request):
-        #data must contain Valid: 1.'file',  2.'location_id', 3.'date_time'
-        data = ValidateData(request)  #{filepath = 'samplingProtocol': samplingProtocol, 'eventRemarks' : eventRemarks, 'locationid' : locationid, 'sequenceid' : sequnece, 'cameraid' : cameraid}        
-        data['eventid'] = SaveNewEvent(data)
-        newImage = SaveNewImage(data)
+#class AddNewImageWithDate(viewsets.ViewSet):
+#    permission_classes = [permissions.IsAuthenticated]
+#    def create(self, request):
+#        #data must contain Valid: 1.'file',  2.'location_id', 3.'date_time'
+#        data = ValidateData(request)  #{filepath = 'samplingProtocol': samplingProtocol, 'eventRemarks' : eventRemarks, 'locationid' : locationid, 'sequenceid' : sequnece, 'cameraid' : cameraid}        
+#        data['eventid'] = SaveNewEvent(data)
+#        newImage = SaveNewImage(data)
        
-class UploadVideoWithData(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated]
-    def create(self, request):
+#class UploadVideoWithData(viewsets.ViewSet):
+#    permission_classes = [permissions.IsAuthenticated]
+#    def create(self, request):
         #request.data['cameraid']= exif['BodySerialNumber'] if 'BodySerialNumber' in exif else None
-        data = ValidateData(request)
-        videoid = SaveNewVideo(data)
-        Sequence = AddSequence(videoid, "Video")
+#        data = ValidateData(request)
+#        videoid = SaveNewVideo(data)
+#        Sequence = AddSequence(videoid, "Video")
 
-        if 'Sharable' in request.data and request.data['Sharable'] == True:
-            ConvertVideo(videoid)
+#        if 'Sharable' in request.data and request.data['Sharable'] == True:
+#            ConvertVideo(videoid)
     
 class UploadVideoWithExif(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
