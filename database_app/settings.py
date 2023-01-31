@@ -60,9 +60,10 @@ TEMPLATE_DIRS = (
 
 REST_FRAMEWORK = {
         'COERCE_DECIMAL_TO_STRING': False,
-        'DEFAULT_AUTHENTICATION_CLASSES': (
+        'DEFAULT_AUTHENTICATION_CLASSES': [
             'rest_framework_simplejwt.authentication.JWTAuthentication',
-            )
+            'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+            ]
 }
 
 
@@ -178,9 +179,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
-LOG_URL = 'log/'
+LOG_URL = '/log/'
 LOG_ROOT = os.path.join(BASE_DIR, 'log')
-
+LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
 
@@ -192,7 +193,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 #STATICFILES_DIRS = [BASE_DIR / 'static']
 #STATIC_ROOT =  os.path.join(BASE_DIR, 'static')
 
@@ -206,43 +207,39 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-
-
+#FILE_UPLOAD_MAX_MEMORY_SIZE = 262144000
+APPEND_SLASH = False
 LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'handlers':{
-            'file': {
-                'level': 'DEBUG',
-                'class': 'logging.FileHandler',
-                'filename': '/home/barl/app/database_app/debug.log',                                                                                                                       },
-             'console':{
-                'level' : 'INFO',
-                'class': 'logging.StreamHandler',
-                },
-              'mail_admins': {
-                'level': 'ERROR',
-                'class': 'django.utils.log.AdminEmailHandler',
-                }
-            },
-           'loggers'
-              'django': {
-                     'handlers': ['file'],
-                     'level': 'DEBUG',
-                     'propagate': True,
-                    },
-               'django_console':{
-                  'handlers': ['console'],
-                  'level': 'INFO',
-                  'propagate': True,
-                },
-                'django.request': {
-                    'handlers': ['mail_admins'],
-                    'level': 'ERROR',
-                    'propagate': False,
-                    },
-            }
+    'version': 1,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': LOG_ROOT+'/debug.log',
+            'formatter': 'verbose'
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    }
+}
 
 
 MEDIA_ROOT =  os.path.join(BASE_DIR, 'media')

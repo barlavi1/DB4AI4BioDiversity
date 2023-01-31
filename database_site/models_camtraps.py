@@ -27,7 +27,7 @@ from .models_helpTables import Location
 
 
 
-class Deployments(models.Model):
+class Deployment(models.Model):
     BaitChoices = (('none','none'),('scent','scent'),('food','food'),('visual','visual'),('acoustic','acoustic'),('other','other'),)
     FeatureTypeChoices = (('none','none'),('road paved','road paved'),('road dirt','road dirt'),('trail hiking','trail hiking'),('trail game','trail game'),('road underpass','road underpass'),('road bridge','road bridge'),('culvert','culvert'),('burrow','burrow'),('nest site','nest site'),('carcass','carcass'),('water source','water source'),('fruiting tree','fruiting tree'),('other','other'),)
     locationid = models.ForeignKey('Location', on_delete=models.CASCADE, db_column='locationID')  # Field name made lowercase.
@@ -55,6 +55,8 @@ class Deployments(models.Model):
     comments = models.CharField(max_length=255, blank=True, null=True)
     #field_id = AutoField(db_column = "_id", primary_key=True, default = 1)  # Field renamed because it started with '_'.
     deploymentid = models.AutoField(db_column = "deploymentid", primary_key=True, editable = False)
+
+
 
     #def save(self, *args, **kwargs):
         #self.longitutde=  (Location.objects.get(locationid=self.locationid.locationid)).decimallongtitude

@@ -15,6 +15,9 @@ class Sex(models.Model):
     """
     sexid = models.AutoField(db_column='sexID', primary_key=True, editable = False)  # Field name made lowercase.
     sextype = models.CharField(db_column='sexType', max_length=255, blank=True, null=True)  # Field name made lowercase.
+    
+    class Meta:
+        verbose_name_plural = "Sexes"
 
 class Taxon(models.Model):
     """
@@ -44,6 +47,9 @@ class Lifestage(models.Model):
 class County(models.Model):
     countyname = models.CharField(db_column="countyName",max_length=255)
     countyPolygon =  Geomodels.PolygonField(db_column="county")
+    class Meta:
+        verbose_name_plural = "Counties"
+
 
 class Region(models.Model):
     regionname = models.CharField(db_column="regionName",max_length=255)

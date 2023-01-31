@@ -5,6 +5,8 @@ from django.conf import settings
 import os
 from django.core.exceptions import ValidationError
 from .models import *
+import subprocess,shutil
+
 def GetImageExif(filepath):
     image = Image.open(filepath)
     exif_data = image._getexif()
@@ -71,6 +73,7 @@ def ValidateData(request):
 
 
 def ValidateDateTime(exif):
+    exif['DateTimeOriginal'] = exif['DateTimeOriginal'].split(".")[0]
     try:
         timestamp = datetime.strptime(exif['DateTimeOriginal'],'%Y:%m:%d %H:%M:%S')
     except:
@@ -91,16 +94,18 @@ def ConvertVideo(NewVideo):
     NewDir = Directory.replace('media/videos', 'media/videos_to_share', 1)
     NewPath = os.path.join(NewDir,FileName)
     os.makedirs(NewDir, exist_ok=True)
-    cmd = "ffmpeg -i " + NewVideo.filepath.path + " -c:a libvorbis -c:v libtheora " + os.path.join(Directory,FileName) +" -map 1 -c copy"
+    cmd = "ffmpeg -i " + NewVideo + " -codec:v libtheora -q:v 10 " + os.path.join(Directory,FileName) 
     output = subprocess.run(cmd, shell = True)
     shutil.move(os.path.join(Directory,FileName), NewDir)
-    f = open(os.path.join(NewDir,FileName),'rb')
-    newSharedVideo = SharedVideo(
-        videoid = NewVideo,
-        filepath = File(f)
-    )
-    newSharedVideo.save()
-    f.close()
+    return os.path.join(NewDir,FileName)
+    #f = open(os.path.join(NewDir,FileName),'rb')
+    
+    #newSharedVideo = SharedVideo(
+    #    videoid = NewVideo,
+    #    filepath = File(f)
+    #)
+    #newSharedVideo.save()
+    #f.close()
 
 
 

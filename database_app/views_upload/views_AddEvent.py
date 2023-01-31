@@ -15,33 +15,35 @@ def SaveNewEvent(data):
     return newEvent
 
 def SaveNewImage(data):
+    data['sequenceid'] = Sequence.objects.get(sequenceid = data['sequenceid']) if 'sequenceid' in data else None
     newImage = Image(eventid = data['eventid'], filepath = data['filepath'], sequenceid = data['sequenceid'], cameraid = data['cameraid'])
     newImage.save()
     return newImage
 
 def AddSequence(videoid, seq_type):
-    newSequence = Sequence(sequenceid = videoid, sequencetype = seq_type)
+    newSequence = Sequence(sequenceid = videoid.videoid, sequencetype = seq_type)
     newSequence.save()
     return newSequence
 
 def SaveNewVideo(data):
-    newVideo = Video(filepath = data['filepath'],  eventdate = data['eventDate'], locationid = data['locationid'], samplingprotocol = data['samplingProtocol'], cameraid = data['cameraid'], eventRemarks = data['eventRemarks'])
+    data['eventRemarks'] = "" if 'eventRemarks' not in data else data['eventRemarks']
+    newVideo = Video(filepath = data['filepath'],  eventdate = data['eventDate'], locationid = data['locationid'], samplingprotocol = data['samplingProtocol'], cameraid = data['cameraid'])#, eventRemarks = data['eventRemarks'])
     newVideo.save()
     return newVideo
 
 def FindDeployment(data):
     try:
-        #Deploy = Deployments.objects.filter(cameraid = data['cameraid']).filter(start__lte = data['date_time'].replace(tzinfo=utc)).filter(end__gte = data['date_time'].replace(tzinfo=utc)).last()
-        Deploy = Deployments.objects.filter(cameraid = data['cameraid']).filter(start__lte = data['date_time']).filter(end__gte = data['date_time']).last()
+        #Deploy = Deployment.objects.filter(cameraid = data['cameraid']).filter(start__lte = data['date_time'].replace(tzinfo=utc)).filter(end__gte = data['date_time'].replace(tzinfo=utc)).last()
+        Deploy = Deployment.objects.filter(cameraid = data['cameraid']).filter(start__lte = data['date_time']).filter(end__gte = data['date_time']).last()
     except:
         raise ValidationError("No Deployment for cameraID. please provide a locationid, or add camera deployment")
     return Deploy.locationid.locationid
 
-def GetOccurenceData(data):
+def GetOccurrenceData(data):
 
     if not 'count' in data or data['count'] == 0:
         return None
-    newOccurences = []
+    newOccurrences = []
     count = data['count']
     taxon = data['taxon'] if 'taxon' in data else "unknown"
     behavior = data['behavior'] if 'behavior' in data else "unknown"
@@ -66,9 +68,9 @@ def GetOccurenceData(data):
             sexid = Sex.objects.get(sextype = sex)
         except:
             raise ValidationError("no such sex")
-        newOccrence = Occurence(eventid = data['eventid'], taxonid = taxonid, behaviorid = behaviorid, sexid = sexid, lifestageid = lifestageid, individualcount = count)
+        newOccrence = Occurrence(eventid = data['eventid'], taxonid = taxonid, behaviorid = behaviorid, sexid = sexid, lifestageid = lifestageid, individualcount = count)
         newOccrence.save()
-        #newOccurences.append(newOccurence)
+        #newOccurrences.append(newOccurrence)
         return newOccrence
     
 
@@ -77,12 +79,12 @@ class AddNewImageWithExif(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
     def create(self,request):
         #print (request.data)
-        print("Uploading Image With Exif")
+        #print("Uploading Image With Exif")
         filepath = request.data['File']
         exif = GetImageExif(filepath)
         request.data['date_time'] = ValidateDateTime(exif)
         request.data['cameraid']= exif['BodySerialNumber'] if 'BodySerialNumber' in exif else None
-        print(request.data)
+        #print(request.data)
         if 'locationid' not in request.data:
             request.data['locationid'] = FindDeployment(request.data)
         data = ValidateData(request)
@@ -90,69 +92,63 @@ class AddNewImageWithExif(viewsets.ViewSet):
         try:
             """add new Event"""
             eventid = SaveNewEvent(data)
-            """add New Image"""
             data['eventid'] = eventid
-            imageid = SaveNewImage(data)
-            if imageid.sequenceid:
-                seq = imageid.sequenceid.sequenceid
-            else:
-                seq = imageid.sequenceid
-            request.data['eventid'] = eventid
         except:
-            print("no")
+            #print("no new event")
             return Response({"fail": {"failed" : "failed"}})
-        occureunceid = GetOccurenceData(request.data)
+        else:
+            try:
+                """add New Image"""
+                imageid = SaveNewImage(data)
+            except:
+                #print("no new image")
+                raise ValidationError()
+                return Response({"fail": {"failed" : "failed"}})
+            else:
+                if imageid.sequenceid.sequenceid:
+                    seq = imageid.sequenceid.sequenceid
+                else:
+                    seq = imageid.sequenceid
+                request.data['eventid'] = eventid
+                occureunceid = GetOccurrenceData(request.data)
 
         returnData = {'imageid' : imageid.imageid, 'eventid' : eventid.eventid, 'sequenceid' : seq,  'filepath' : imageid.filepath.path}
-        return Response(returnData)
+        return Response({"data" : returnData})
         #print(returnData)
         #except:
             #print ("no")
         #def update(self,request):
 
 
-class AddNewOccurence(viewsets.ViewSet):
+class AddNewOccurrence(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = OccurenceSerializer
+    serializer_class = OccurrenceSerializer
     def create(self,request):
         Event_obj = Events.objects.get(eventid = data['eventid'])
         if len(Event_obj) == 0:
             raise ValidationError("no such event")
-        occureunceid = GetOccurenceData(request.data)
+        occureunceid = GetOccurrenceData(request.data)
 
-#class AddNewImageWithDate(viewsets.ViewSet):
-#    permission_classes = [permissions.IsAuthenticated]
-#    def create(self, request):
-#        #data must contain Valid: 1.'file',  2.'location_id', 3.'date_time'
-#        data = ValidateData(request)  #{filepath = 'samplingProtocol': samplingProtocol, 'eventRemarks' : eventRemarks, 'locationid' : locationid, 'sequenceid' : sequnece, 'cameraid' : cameraid}        
-#        data['eventid'] = SaveNewEvent(data)
-#        newImage = SaveNewImage(data)
-       
-#class UploadVideoWithData(viewsets.ViewSet):
-#    permission_classes = [permissions.IsAuthenticated]
-#    def create(self, request):
-        #request.data['cameraid']= exif['BodySerialNumber'] if 'BodySerialNumber' in exif else None
-#        data = ValidateData(request)
-#        videoid = SaveNewVideo(data)
-#        Sequence = AddSequence(videoid, "Video")
-
-#        if 'Sharable' in request.data and request.data['Sharable'] == True:
-#            ConvertVideo(videoid)
     
-class UploadVideoWithExif(viewsets.ViewSet):
+class UploadVideoWithExif(viewsets.ViewSet): 
     permission_classes = [permissions.IsAuthenticated]
     def create(self, request):
-        if 'file' not in request.data: raise ValidationError("No file was uploaded")
-        exif = {}
-        exif['DateTimeOriginal'] = GetVideoExif(filepath)
+        if 'File' not in request.data: raise ValidationError("No file was uploaded")
+        exif = {'DateTimeOriginal' : request.data['DateTimeOriginal']}
+        #exif['DateTimeOriginal'] = GetVideoExif(request.data['file'])
         request.data['date_time'] = ValidateDateTime(exif)
+        request.data['locationid'] = FindDeployment(request.data) if 'locationid' not in request.data else request.data['locationid']
         #request.data['cameraid']= exif['BodySerialNumber'] if 'BodySerialNumber' in exif else None
         data = ValidateData(request)
         videoid = SaveNewVideo(data)
         Sequence = AddSequence(videoid, "Video")
+        if 'Sherable' in request.data and request.data['Sherable'] == 'True':
+            print("converting")
+            convertedFileName = ConvertVideo(videoid)
+        else:
+            print("no sherable")
+        return Response({"sequenceid" : Sequence.sequenceid})
 
-        if 'Sharable' in request.data and request.data['Sharable'] == True:
-            ConvertVideo(videoid)
 
 
 
