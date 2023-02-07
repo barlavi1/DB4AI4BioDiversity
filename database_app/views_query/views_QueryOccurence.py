@@ -14,116 +14,58 @@ from database_site.functions import *
 import pandas as pd
 from rest_framework import response
 import io, csv
+from django.db.models import Subquery, OuterRef
+from django.db.models import Case, When, Value, IntegerField, Q
 
-def GetEventDate(img_cluster):
-    if hasattr(img_cluster.eventid, 'eventid'):
-        return img_cluster.eventid.eventdate.replace(tzinfo=utc)
-    return img_cluster.eventdate.replace(tzinfo=utc)
+def GetRelatedVideos(sequenceid,locationid,taxonid,cameraid,supraeventid):
+    """ get videos related to frames (by sequenceid)"""
 
-def Event4SupraEvent(img):
-    if hasattr(img.eventid, 'eventid'):
-        return img.eventid.eventid
-    return img.eventid
+    vid = Video.objects.get(videoid = sequenceid)
+    vid_event = {"event_datetime" : vid.eventdate, "inner_eventid" : None, "locationid" : locationid, "occurenceid" : None, "taxonid" : taxonid, "sequenceid" : sequenceid, "cameraid" : cameraid, "filepath" : vid.filepath.url, "eventid" : supraeventid}
+    return vid_event
 
 def CalcSupraEventID(events_dict,time_interval):
-
-    res = sorted(events_dict.items(), key = lambda x: x[1]['timestamp'])
-    supraeventid, last_end, supraeventDict, NumImagesDict = 0,0,{}, {}
+    """
+    calculate supra-event-id by interval
+    """
     time_interval = timedelta(minutes=time_interval)
-    for res_event in res:
-        res_datetime = res_event[1]['timestamp']
-        if last_end == 0 or res_datetime - last_end > time_interval:
+    last_end, supraeventid, vids_seqs, vids_dict = 0, 0, [], []
+    for event in events_dict:
+        event_datetime = event['eventid__eventdate']
+        if last_end == 0 or event_datetime - last_end > time_interval:
             supraeventid+=1
-            NumImagesDict[supraeventid] = {}
-            NumImagesDict[supraeventid]['events'] = list()
-            NumImagesDict[supraeventid]['num'] = 0
-            NumImagesDict[supraeventid]['start'] = res_event[1]['timestamp']
-            NumImagesDict[supraeventid]['end'] = res_event[1]['timestamp']
-            NumImagesDict[supraeventid]['location'] = res_event[1]['location']
-            NumImagesDict[supraeventid]['camera'] = res_event[1]['cameraid']
-            if  'sequenceid' in res_event[1]:
-                 NumImagesDict[supraeventid]['videos'] = list()
-
-        NumImagesDict[supraeventid]['events'].append(res_event[1]['filepath'])
-        NumImagesDict[supraeventid]['num']+=1
-        NumImagesDict[supraeventid]['end'] = res_event[1]['timestamp']
-        if 'sequenceid' in res_event[1]:
-            videofile = Video.objects.get(videoid = res_event[1]['sequenceid']).filepath.url
-            NumImagesDict[supraeventid]['videos'].append(videofile)
-        last_end = res_datetime
-    return NumImagesDict
-
-
-def GenerateManifest(res,filetype):
-    if filetype == "videos":
-        mime_type = "video/mp4"
-        maxEvents = max(len(list(set(res[supraEvent]['videos']))) for supraEvent in res)
-        csv_headers = ["#subject_id","#mime_Type","mimeCount"]+["#video"+str(i+1) for i in range(maxEvents)] + ["Date","Start","End","Duration","Location","Camera"]
-    else:
-        maxEvents = max(int(res[inner]['num']) for inner in res)
-        mime_type = "image/jpeg"
-        csv_headers = ["#subject_id","#mime_Type","mimeCount"]+["#image"+str(i+1) for i in range(maxEvents)] + ["Date","Start","End","Duration","Location","Camera"]
-    buffer = io.StringIO()
-    wr = csv.writer(buffer)
-    wr.writerow(csv_headers)
-    for supraEvent in res:
-        SupraEvents = res[supraEvent]
-        start = res[supraEvent]['start']
-        date = start.date()
-        end = res[supraEvent]['end']
-        if filetype == "videos":
-            filepaths = list(set(res[supraEvent]['videos']))
-            filepaths = sorted(filepaths)
-            [filepaths.append("") for i in range(maxEvents-len(list(set(res[supraEvent]['videos']))))]
-            count = len(list(set(res[supraEvent]['videos'])))
-        else:
-            filepaths = res[supraEvent]['events']
-            [filepaths.append("") for i in range(maxEvents-len(res[supraEvent]['events']))]
-            count = res[supraEvent]['num']
-        #print(filepaths)
-
-        duration = end - start
-        location = res[supraEvent]['location']
-        camera = res[supraEvent]['camera']
-        #count = res[supraEvent]['num']
-        outline = [supraEvent,mime_type,count]+filepaths+[date,start,end,duration,location,camera]
-        wr.writerow(outline)
-    buffer.seek(0)
-    wr = csv.writer(buffer)
-    response = HttpResponse(buffer, content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="zooniverse_response.csv"'
-    return (response)
         
+        event['supraeventid'] = supraeventid
+        if "sequenceid" in event and event["sequenceid"] not in vids_seqs and event["sequenceid"] is not None: #add relevant videos
+            vids_dict.append(GetRelatedVideos(event["sequenceid"], event['eventid__locationid'], event['taxonid_id'], event['cameraid'], supraeventid))
+            vids_seqs.append(event["sequenceid"])
+        last_end = event_datetime
+    return events_dict, vids_dict
 
+def Convert2csv(imgs_data, vids_data):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="data.csv"'
+    writer = csv.writer(response)
+    headers = ["event_datetime","inner_eventid","locationid", "occurenceid", "taxonid","sequenceid","cameraid","filepath", "eventid"]
+    writer.writerow(headers)
+    for item in imgs_data:
+        writer.writerow(item.values())
+    for item in vids_data:
+        writer.writerow(item.values())
+    return response
 
 
 def FilterData(requst_data):
     """
-    calculate supra event id for each picture in data
-    Note - request_data = request.data: should have a legit cameraid, animal (generic name) and range date (start, end) in iso format.
-    returns csv with queried data by the above parameters
+    filter data by cameraid, start, end and taxonid (according to NCBI(
     """
-
     ImgsQueryset = database_site.models.Image.objects.filter(cameraid = requst_data['cameraid']).select_related('eventid').filter(eventid__eventdate__range=[requst_data['start'],requst_data['end']])
-    OccQueryset = Occurrence.objects.filter(taxonid__genericname = requst_data['animal']).select_related('eventid').filter(eventid__in = ImgsQueryset.values_list('eventid', flat=True))
-    toReturn = {}
-    for queryset in OccQueryset:
-        if 1 == 1:
-            toReturn[queryset.eventid.eventid]=dict()
-            toReturn[queryset.eventid.eventid]['eventid'] = queryset.eventid.eventid
-            toReturn[queryset.eventid.eventid]['filepath'] = database_site.models.Image.objects.get(eventid=queryset.eventid).filepath.url
-            toReturn[queryset.eventid.eventid]['cameraid'] = database_site.models.Image.objects.get(eventid=queryset.eventid).cameraid
-            toReturn[queryset.eventid.eventid]['animal'] = queryset.taxonid.genericname
-            toReturn[queryset.eventid.eventid]['timestamp'] = queryset.eventid.eventdate
-            toReturn[queryset.eventid.eventid]['occurenceid'] = queryset.occurenceid
-            toReturn[queryset.eventid.eventid]['location'] = queryset.eventid.locationid.locationname
-            try:
-                toReturn[queryset.eventid.eventid]['sequenceid'] =  database_site.models.Image.objects.get(eventid=queryset.eventid).sequenceid.sequenceid
-            except:
-                print("no such sequenceid")
-            
-    return toReturn
+    seq_subquery = ImgsQueryset.filter(eventid=OuterRef('eventid')).values('sequenceid__sequenceid')[:1]
+    cam_subquery = ImgsQueryset.filter(eventid=OuterRef('eventid')).values('cameraid')[:1]
+    path_subquery = ImgsQueryset.filter(eventid=OuterRef('eventid')).values('filepath')[:1]
+    OccQueryset = Occurrence.objects.filter(taxonid__taxonid = requst_data['taxonid']).select_related('eventid').filter(eventid__in = ImgsQueryset.values_list('eventid', flat=True)).order_by('eventid__eventdate').values('eventid__eventdate', 'eventid_id', 'eventid__locationid', 'occurrenceid', 'taxonid_id').annotate(sequenceid=Subquery(seq_subquery)).annotate(cameraid=Subquery(cam_subquery)).annotate(filepath=Subquery(path_subquery))
 
+    return OccQueryset 
 
 class Zooniverse(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
@@ -131,13 +73,12 @@ class Zooniverse(viewsets.ViewSet):
     create data for zooniverse format using date range, species and camera
     """
     def list(self, request):
-        res = FilterData(request.data)
-        EventsInSupraEvent = CalcSupraEventID(res, request.data['interval'])
-        if request.data['type'] == "videos":
-            response = GenerateManifest(EventsInSupraEvent,"videos")
-        else:
-            response = GenerateManifest(EventsInSupraEvent,"images")
+        res =  FilterData(request.data)
+        imgs,vids = CalcSupraEventID(res, request.data['interval'])
+            
+        response = Convert2csv(imgs,vids)
         return response
+
 
 
 
