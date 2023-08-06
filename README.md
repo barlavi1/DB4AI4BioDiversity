@@ -8,7 +8,7 @@ I built and tested the database using MySQL un ubuntu22.04, yet it can support o
 
 ## Functionalities
 - load videos and images with exif data
-- add object taxnomony
+- add taxnomony
 - download CSV files and zip of images
 
 ### post 
