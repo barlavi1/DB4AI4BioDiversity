@@ -1,7 +1,7 @@
 # DB4AI4BD
 
-This database was built in [Django](https://www.djangoproject.com/) with DwC in mind in order to save and transform data from camera-trap to different standards.
-Currently, the database exports data to [Zooniverse](https://www.zooniverse.org/) format.
+This database was built in [Django](https://www.djangoproject.com/) with [TDWG](https://www.tdwg.org/) in mind, in order to save and transform data from camera-trap to different standards.
+Currently, the database exports data to the [Zooniverse](https://www.zooniverse.org/) format.
 
 ## Technologies
 I built and tested the database using MySQL un ubuntu22.04, yet it can support other structure.
