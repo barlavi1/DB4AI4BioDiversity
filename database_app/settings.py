@@ -22,10 +22,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-&+zijzswpi^@ltbn6qp)x+1s96t&7&&ta3(r(lny45pet6dm09'
+SECRET_KEY = '' # add secret key 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 #ALLOWED_HOSTS = ["127.0.0.1"]
 ALLOWED_HOSTS = []
@@ -46,17 +46,11 @@ INSTALLED_APPS = [
     'django.contrib.gis',
     'rest_framework.authtoken',
     'rest_framework_simplejwt.token_blacklist',
-    #'videouploaddisplay.apps.VideouploaddisplayConfig',
-    #'djangocms_video',
-    #'embed_video',
-
-
 ]
 
 TEMPLATE_DIRS = (
     os.path.join(BASE_DIR, 'templates/'),
 )
-
 
 REST_FRAMEWORK = {
         'COERCE_DECIMAL_TO_STRING': False,
@@ -65,7 +59,6 @@ REST_FRAMEWORK = {
             'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
             ]
 }
-
 
 
 MIDDLEWARE = [
@@ -99,7 +92,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'database_app.wsgi.application'
 
 
-
 TEMPLATE_CONTEXT_PROCESSORS = (
         'django.template.context_processors.request',
 )
@@ -111,28 +103,24 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 DATABASES = {
         'default': {
             'APP_DIRS': True,
-            #'ENGINE': 'django.db.backends.mysql',
             'ENGINE': 'django.contrib.gis.db.backends.mysql',
-            'NAME': 'BioDiversityDB',
-            'USER': 'BioDiversity',
-            'PASSWORD': 'Bb2022Bb',
-            'HOST': '127.0.0.1',
-            'PORT': '3306',
+            'NAME': '',
+            'USER': '',
+            'PASSWORD': '',
+            'HOST': '',
+            'PORT': '',
             'TEST' : {
-                'NAME': 'test_BioDiversityDB',
+                'NAME': '',
                 },
-
             }
 }
-
 
 SIMPLE_JWT = {
         'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
         'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
         'ROTATE_REFRESH_TOKENS': False,
-        'BLACKLIST_AFTER_ROTATION': False,
+        'BLACKLIST_AFTER_ROTATION': True,
         'UPDATE_LAST_LOGIN': False,
-
         'ALGORITHM': 'HS256',
         'SIGNING_KEY': SECRET_KEY,
         'VERIFYING_KEY': None,
@@ -140,18 +128,14 @@ SIMPLE_JWT = {
         'ISSUER': None,
         'JWK_URL': None,
         'LEEWAY': 0,
-
         'AUTH_HEADER_TYPES': ('Bearer',),
         'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
         'USER_ID_FIELD': 'id',
         'USER_ID_CLAIM': 'user_id',
         'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
-
         'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
         'TOKEN_TYPE_CLAIM': 'token_type',
-
         'JTI_CLAIM': 'jti',
-
         'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
         'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
         'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1)
@@ -182,11 +166,8 @@ AUTH_PASSWORD_VALIDATORS = [
 LOG_URL = '/log/'
 LOG_ROOT = os.path.join(BASE_DIR, 'log')
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -194,20 +175,21 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = '/static/'
-#STATICFILES_DIRS = [BASE_DIR / 'static']
-#STATIC_ROOT =  os.path.join(BASE_DIR, 'static')
-
 #if DEBUG:
     #STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 #else:
     #STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-#STATICFILES_DIRS = [BASE_DIR / 'static', ]
+MEDIA_ROOT =  os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #FILE_UPLOAD_MAX_MEMORY_SIZE = 262144000
+
 APPEND_SLASH = False
 LOGGING = {
     'version': 1,
@@ -242,6 +224,5 @@ LOGGING = {
 }
 
 
-MEDIA_ROOT =  os.path.join(BASE_DIR, 'media')
-MEDIA_URL = '/media/'
+
 
