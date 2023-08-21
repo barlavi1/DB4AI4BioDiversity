@@ -151,7 +151,7 @@ class UploadVideoWithExif(viewsets.ViewSet):
             raise ValidationError(f"cameraid must be provided")
         #exif = {'DateTimeOriginal' : request.data['DateTimeOriginal']}
         exif = {'DateTimeOriginal' : GetVideoExif(request.data['File'])} #insert datetime to exif
-        print(exif)
+        #print(exif)
         #exif['DateTimeOriginal'] = GetVideoExif(request.data['file'])
         request.data['date_time'] = ValidateDateTime(exif)
         request.data['locationid'] = FindDeployment(request.data) if 'locationid' not in request.data else request.data['locationid']
