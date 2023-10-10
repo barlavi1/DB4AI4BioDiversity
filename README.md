@@ -1,4 +1,4 @@
-# DB4AI4BD
+# DB4AI4BioDiversity
 
 This database was built in [Django](https://www.djangoproject.com/) with [TDWG](https://www.tdwg.org/) in mind, in order to handle camera-trap data.
 Currently, the database exports data to the [Zooniverse](https://www.zooniverse.org/) format.
