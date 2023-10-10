@@ -17,13 +17,13 @@ this database was tested using MySQL un ubuntu22.04, yet it can support other st
 
 ### query - get
 - query by polygon
-- query by a range of dates, taxa, and camera na
+- query by a range of dates, taxa, and camera name
 
 ## Prerequisites
 - MySQL or similar
-- Fill setting.py with correct database and pathes. 
+- Fill setting.py with your database and path. 
 
-## TO DO - maybe?
+## TO DO
 - add a filter - a user can **query - get** only his data
 - UI (tkinter or similar) for data transformation.
 - WEB UI
