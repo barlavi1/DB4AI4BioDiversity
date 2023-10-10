@@ -21,11 +21,12 @@ this database was tested using MySQL un ubuntu22.04, yet it can support other st
 
 ## Prerequisites
 - MySQL or similar
-- ###todo: a local_settings.py to fill setting.py file 
+- Fill setting.py with correct database and pathes. 
 
 ## TO DO - maybe?
 - add a filter - a user can **query - get** only his data
 - UI (tkinter or similar) for data transformation.
 - WEB UI
+- a local_settings.py and a code to fill setting.py file 
 
   
