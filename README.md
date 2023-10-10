@@ -25,7 +25,7 @@ this database was tested using MySQL un ubuntu22.04, yet it can support other st
 
 ## TO DO - maybe?
 - add a filter - a user can **query - get** only his data
-- add 
-- UI (tkinter) for data transformation.
+- UI (tkinter or similar) for data transformation.
+- WEB UI
 
   
