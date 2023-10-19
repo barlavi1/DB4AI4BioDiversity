@@ -73,6 +73,8 @@ curl -H 'Authorization: Bearer <access token>' -X GET <server_address>:<port>/<r
 | /auth/get_token/ | POST | {username: str, password: str} | get access token and refresh token |
 | /auth/token_refresh | POST | { refresh: str } | refresh expired access token |
 | /auth/logout/ | POST | | blacklist the access token and the refresh token | 
+| /api/add-new-image/ | POST | { File : full_path_to_image, cameraid : str (optional), date_time : str (optional), locationid : str (optional) } | Add new image. date_time and cameraid should be provided via exif or request |
+
 
 For further information how to use curl check the [docs](https://curl.se/docs/tutorial.html).
 Django
