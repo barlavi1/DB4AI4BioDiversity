@@ -1,5 +1,5 @@
 # AI4Biodiversity django backend
-This backend server was built to help ecologists monitor animals activity through camera-trap images and videos.
+This backend server was built to help ecologists monitor animal activity through camera-trap images and videos.
 
 ## Functionalities
 * Upload images.
@@ -10,7 +10,7 @@ This backend server was built to help ecologists monitor animals activity throug
 * Handle a database for future queries.
 * Download CSV files and zip of images in [Zooniverse](https://www.zooniverse.org/) format.
 * Permission system for group work and isolated each data collection project management.
-* A Sherable flag to mark videos as sherable for view.
+* A Sherable flag to mark videos as shareable for viewing.
 * Communicate using JWT only
 
 ## Prerequisites
@@ -30,7 +30,7 @@ Important notes:
 * Create an empty database
 * Create username (with password) with the permissions to read-write the crated database
 * make sure the DATABASES part in the settings is following Django documentation.
-* once the above are done, initiate the database. the following commands will create the tables under the designated database:
+* once the above is done, initiate the database. the following commands will create the tables under the designated database:
 ```
    python manage.py makemigrations
    python manage.py migrate
@@ -48,7 +48,7 @@ Important notes:
 ```
 
 ### Run Server
-Make sure the DEBUG flag set to True in the setting.py, and run the server (by default, it will run on port 8080)
+Make sure the DEBUG flag is set to True in the setting.py, and run the server (by default, it will run on port 8080)
 see further details in the Django documentation
 ```
    python manage.py runserver
