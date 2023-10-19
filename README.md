@@ -22,7 +22,7 @@ local_settings.py: filling the missing parts at the setting.py file
    ALLOWED_HOSTS = ['list of allowed hosts to redirect requests']
    DATABASES = {'a dictionary': 'of the databases credentials, see Django docs'}
 ```
-* Auth directory should be provided (you can address me for help with auth dict).
+* Auth directory should be provided (you can address me).
 
 ### Database init
 On my app I used mySQL, but the models support any database.
