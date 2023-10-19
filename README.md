@@ -1,5 +1,5 @@
 # AI4Biodiversity django backend
-This backend server was build to help ecologists monitor animals activity through camera-trap images and videos.
+This backend server was built to help ecologists monitor animals activity through camera-trap images and videos.
 
 ## Functionalities
 * Upload images.
