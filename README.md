@@ -67,6 +67,13 @@ curl -H 'Authorization: Bearer <access token>' -X GET <server_address>:<port>/<r
 ```
 
 ### Routes
+
+| Route | Request Type Allowed | Payload | Details |
+| ----- | -------------------- | ------- | ------- |
+| /auth/get_token/ | POST | {username: str, password: str} | get access token and refresh token |
+| /auth/token_refresh | POST | { refresh: str } | refresh expired access token |
+| /auth/logout/ | POST | | blacklist the access token and the refresh token | 
+
 For further information how to use curl check the [docs](https://curl.se/docs/tutorial.html).
 Django
 Django REST Framework
